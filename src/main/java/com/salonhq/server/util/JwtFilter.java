@@ -34,7 +34,8 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
         HttpServletRequest request,
         @NonNull HttpServletResponse response,
-        @NonNull FilterChain filterChain) throws ServletException, IOException
+        @NonNull FilterChain filterChain
+    ) throws ServletException, IOException
     {
         String header = request.getHeader(AUTH_HEADER);
         if (header != null && header.startsWith(String.format("%s ", Constants.BEARER))) {
