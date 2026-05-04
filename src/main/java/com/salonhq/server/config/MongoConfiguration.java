@@ -6,7 +6,9 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
@@ -39,7 +41,7 @@ public class MongoConfiguration extends AbstractMongoClientConfiguration {
     private String localMongoUrl;
 
     @Override
-    protected String getDatabaseName() {
+    protected @NonNull String getDatabaseName() {
         return databaseName;
     }
 
@@ -62,7 +64,7 @@ public class MongoConfiguration extends AbstractMongoClientConfiguration {
     }
 
     @Override
-    public MongoClient mongoClient() {
+    public @NonNull MongoClient mongoClient() {
         MongoClientSettings settings = MongoClientSettings.builder()
             .applyConnectionString(new ConnectionString(getConnectionString()))
             .build();
