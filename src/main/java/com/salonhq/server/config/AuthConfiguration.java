@@ -48,6 +48,7 @@ public class AuthConfiguration {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter,
