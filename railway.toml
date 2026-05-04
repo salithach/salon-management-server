@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+buildCommand = "./gradlew bootJar --no-daemon"
+
+[deploy]
+startCommand = "java -jar $(find build/libs -name '*.jar' ! -name '*plain*' | head -1)"
+healthcheckPath = "/actuator/health"
+restartPolicyType = "on_failure"
+
