@@ -7,21 +7,15 @@ import com.mongodb.client.MongoClients;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.codecs.configuration.CodecRegistries;
-import org.bson.codecs.configuration.CodecRegistry;
-import org.bson.codecs.pojo.PojoCodecProvider;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.MongoDatabaseFactory;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.SimpleMongoClientDatabaseFactory;
+import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 
 import static com.salonhq.server.util.Constants.LOCAL_ENV;
 
 @Configuration
 @Slf4j
-public class MongoConfiguration {
+public class MongoConfiguration extends AbstractMongoClientConfiguration {
 
     @Value("${salonhq.mongo.db.cluster}")
     private String databaseCluster;
@@ -44,14 +38,21 @@ public class MongoConfiguration {
     @Value("${salonhq.mongo.local.url}")
     private String localMongoUrl;
 
+    @Override
+    protected String getDatabaseName() {
+        return databaseName;
+    }
+
     private String getConnectionString() {
         if (environment.equalsIgnoreCase(LOCAL_ENV)) {
+            log.info("[MongoDB] Environment: LOCAL — connecting to {}", localMongoUrl);
             return localMongoUrl;
         }
+        log.info("[MongoDB] Environment: {} — connecting to Atlas cluster: {}", environment, databaseCluster);
         String encodedUser = URLEncoder.encode(databaseUser, StandardCharsets.UTF_8);
         String encodedPassword = URLEncoder.encode(databasePassword, StandardCharsets.UTF_8);
         return String.format(
-            "mongodb+srv://%s:%s@%s/%s?appName=%s",
+            "mongodb+srv://%s:%s@%s/%s?authSource=admin&retryWrites=true&w=majority&appName=%s",
             encodedUser,
             encodedPassword,
             databaseCluster,
@@ -60,28 +61,11 @@ public class MongoConfiguration {
         );
     }
 
-    @Bean
+    @Override
     public MongoClient mongoClient() {
-        final ConnectionString connectionString = new ConnectionString(getConnectionString());
-        CodecRegistry registry = CodecRegistries.fromRegistries(
-            MongoClientSettings.getDefaultCodecRegistry(),
-            CodecRegistries.fromProviders(PojoCodecProvider.builder().automatic(true).build())
-        );
-        MongoClientSettings mongoClientSettings = MongoClientSettings.builder()
-            .applyConnectionString(connectionString)
-            .codecRegistry(registry)
-        .build();
-        return MongoClients.create(mongoClientSettings);
+        MongoClientSettings settings = MongoClientSettings.builder()
+            .applyConnectionString(new ConnectionString(getConnectionString()))
+            .build();
+        return MongoClients.create(settings);
     }
-
-    @Bean
-    public MongoDatabaseFactory mongoDbFactory() {
-        return new SimpleMongoClientDatabaseFactory(mongoClient(), databaseName);
-    }
-
-    @Bean
-    public MongoTemplate mongoTemplate() {
-        return new MongoTemplate(mongoDbFactory());
-    }
-
 }
