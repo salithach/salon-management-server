@@ -51,10 +51,11 @@ public class MongoConfiguration {
         String encodedUser = URLEncoder.encode(databaseUser, StandardCharsets.UTF_8);
         String encodedPassword = URLEncoder.encode(databasePassword, StandardCharsets.UTF_8);
         return String.format(
-            "mongodb+srv://%s:%s@%s/?appName=%s",
+            "mongodb+srv://%s:%s@%s/%s?appName=%s",
             encodedUser,
             encodedPassword,
             databaseCluster,
+            databaseName,
             dbAppName
         );
     }
