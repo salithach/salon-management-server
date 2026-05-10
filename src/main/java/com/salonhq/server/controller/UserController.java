@@ -20,4 +20,10 @@ public class UserController {
     public String userTest() {
         return "Hello User Restricted";
     }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
+    @GetMapping("/hello-admin")
+    public String adminTest() {
+        return "Hello Admin Restricted";
+    }
 }

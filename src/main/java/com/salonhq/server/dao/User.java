@@ -1,6 +1,9 @@
 package com.salonhq.server.dao;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.salonhq.server.model.request.salon.SalonInformation;
+import com.salonhq.server.model.request.salon.SalonLocation;
+import com.salonhq.server.model.request.salon.SalonOwner;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -26,4 +29,7 @@ public class User {
     String password;
     @Builder.Default
     Set<Role> roles = new HashSet<>();
+    SalonOwner owner;
+    SalonInformation salon;
+    SalonLocation location;
 }
