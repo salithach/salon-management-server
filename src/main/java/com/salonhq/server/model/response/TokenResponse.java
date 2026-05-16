@@ -13,5 +13,6 @@ import java.util.List;
 @NoArgsConstructor
 public class TokenResponse {
     String token;
+    String username;
     List<String> roles;
 }
