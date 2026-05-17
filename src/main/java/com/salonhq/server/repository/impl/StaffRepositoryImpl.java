@@ -1,5 +1,7 @@
 package com.salonhq.server.repository.impl;
 
+import com.mongodb.client.result.DeleteResult;
+import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.salonhq.server.util.Constants.EMAIL;
+import static com.salonhq.server.util.Constants.ID;
 import static com.salonhq.server.util.Constants.USERNAME;
 
 @Repository
@@ -27,8 +30,7 @@ public class StaffRepositoryImpl implements StaffRepository {
 
     @Override
     public StaffMember addStaff(StaffMember staffMember) {
-        String id = UUID.randomUUID().toString();
-        staffMember.setId(id);
+        staffMember.setId(UUID.randomUUID().toString());
         return mongoTemplate.save(staffMember);
     }
 
@@ -45,8 +47,15 @@ public class StaffRepositoryImpl implements StaffRepository {
     }
 
     @Override
-    public void removeStaff() {
+    public Optional<StaffMember> getById(String id) {
+        Query query = Query.query(Criteria.where(ID).is(id));
+        return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
+    }
 
+    @Override
+    public DeleteResult removeStaff(String username) {
+        Query query = Query.query(Criteria.where(USERNAME).is(username));
+        return mongoTemplate.remove(query, StaffMember.class);
     }
 
     @Override

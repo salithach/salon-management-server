@@ -9,6 +9,7 @@ import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -39,9 +40,9 @@ public class CustomExceptionHandler {
 	@ExceptionHandler({MethodArgumentNotValidException.class})
 	public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
 		List<ErrorResponse> errorList = ex.getBindingResult().getFieldErrors().stream()
-				.map(FieldError::getDefaultMessage)
-				.map(msg -> new ErrorResponse(BAD_REQUEST.value(), msg))
-				.toList();
+			.map(FieldError::getDefaultMessage)
+			.map(msg -> new ErrorResponse(BAD_REQUEST.value(), msg))
+		.toList();
 		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
 		envelopedResponse.setErrors(errorList);
 		return new ResponseEntity<>(envelopedResponse, BAD_REQUEST);
@@ -59,5 +60,12 @@ public class CustomExceptionHandler {
 		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
 		envelopedResponse.setErrors(List.of(new ErrorResponse(UNAUTHORIZED.value(), ex.getMessage())));
 		return new ResponseEntity<>(envelopedResponse, UNAUTHORIZED);
+	}
+
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	public final ResponseEntity<?> handleMissingServletRequestParameterException(MissingServletRequestParameterException ex) {
+		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
+		envelopedResponse.setErrors(List.of(new ErrorResponse(BAD_REQUEST.value(), ex.getMessage())));
+		return new ResponseEntity<>(envelopedResponse, BAD_REQUEST);
 	}
 }

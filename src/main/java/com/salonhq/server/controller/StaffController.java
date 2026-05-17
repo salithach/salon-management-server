@@ -1,6 +1,7 @@
 package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.StaffMember;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.StaffService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,16 @@ public class StaffController {
         StaffMember staffMember = staffService.createStaff(staffMemberRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(staffMember)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{username}")
+    public ResponseEntity<?> removeStaffMember(@PathVariable String username) {
+        DeleteResponse deleteResponse = staffService.deleteStaff(username);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(deleteResponse)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
