@@ -1,7 +1,6 @@
 package com.salonhq.server.repository.impl;
 
 import com.mongodb.client.result.DeleteResult;
-import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;

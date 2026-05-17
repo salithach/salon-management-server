@@ -1,7 +1,6 @@
 package com.salonhq.server.repository;
 
 import com.mongodb.client.result.DeleteResult;
-import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.dao.StaffMember;
 
 import java.util.List;
