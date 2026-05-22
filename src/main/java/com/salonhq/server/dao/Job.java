@@ -1,6 +1,6 @@
 package com.salonhq.server.dao;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.salonhq.server.model.JobDetails;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,11 +12,11 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "jobRoles")
-public class Role {
+@Document(collection = "jobs")
+public class Job {
     @Id
-    @JsonIgnore
     String id;
-    String key;
-    String name;
+    String date;
+    String assignee;
+    JobDetails details;
 }

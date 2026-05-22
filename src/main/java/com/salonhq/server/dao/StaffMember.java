@@ -21,5 +21,5 @@ public class StaffMember {
     String phone;
     String address;
     String specialty;
-    String role;
+    Role role;
 }

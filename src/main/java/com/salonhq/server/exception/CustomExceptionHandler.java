@@ -2,6 +2,7 @@ package com.salonhq.server.exception;
 
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.model.response.ErrorResponse;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -53,6 +54,13 @@ public class CustomExceptionHandler {
 		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
 		envelopedResponse.setErrors(List.of(new ErrorResponse(FORBIDDEN.value(), ex.getMessage())));
 		return new ResponseEntity<>(envelopedResponse, FORBIDDEN);
+	}
+
+	@ExceptionHandler(ExpiredJwtException.class)
+	public final ResponseEntity<?> handleExpiredJwtException(ExpiredJwtException ex) {
+		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
+		envelopedResponse.setErrors(List.of(new ErrorResponse(UNAUTHORIZED.value(), "Token expired, please login again")));
+		return new ResponseEntity<>(envelopedResponse, UNAUTHORIZED);
 	}
 
 	@ExceptionHandler(AuthenticationException.class)
