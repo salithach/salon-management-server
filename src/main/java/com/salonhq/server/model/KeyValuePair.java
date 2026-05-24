@@ -1,15 +1,15 @@
 package com.salonhq.server.model;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
 public class KeyValuePair {
-    private String key;
-    private String value;
+    public String key;
+    public String value;
 }

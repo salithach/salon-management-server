@@ -31,4 +31,14 @@ public class JobController {
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+    @GetMapping("")
+    public ResponseEntity<?> getJobs(@RequestParam("date") String date) {
+        List<Job> jobsResponse = jobService.getJobs(date);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(jobsResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

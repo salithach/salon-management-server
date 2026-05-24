@@ -1,5 +1,6 @@
 package com.salonhq.server.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,5 +15,6 @@ import java.util.List;
 public class JobDetails {
     Double price;
     List<String> services;
-    String description;
+    @Builder.Default
+    String description = "N/A";
 }

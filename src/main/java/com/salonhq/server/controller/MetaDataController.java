@@ -1,6 +1,7 @@
 package com.salonhq.server.controller;
 
-import com.salonhq.server.dao.Role;
+import com.salonhq.server.dao.JobRole;
+import com.salonhq.server.dao.JobType;
 import com.salonhq.server.model.KeyValuePair;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.MetaDataService;
@@ -23,8 +24,8 @@ public class MetaDataController {
     }
 
     @GetMapping("/jobRoles")
-    public ResponseEntity<?> getRoles() {
-        List<Role> jobRolesResponse = metaDataService.getJobRolesList();
+    public ResponseEntity<?> getJobRoles() {
+        List<JobRole> jobRolesResponse = metaDataService.getJobRolesList();
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobRolesResponse)
             .errors(List.of())
@@ -34,9 +35,29 @@ public class MetaDataController {
 
     @PostMapping("/jobRoles")
     public ResponseEntity<?> addJobRole(@RequestBody List<KeyValuePair> roleRequest) {
-        List<Role> jobRolesResponse = metaDataService.createJobRoles(roleRequest);
+        List<JobRole> jobRolesResponse = metaDataService.createJobRoles(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobRolesResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("/jobTypes")
+    public ResponseEntity<?> getJobTypes() {
+        List<JobType> jobTypesResponse = metaDataService.getJobTypesList();
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(jobTypesResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/jobTypes")
+    public ResponseEntity<?> addJobTypes(@RequestBody List<KeyValuePair> roleRequest) {
+        List<JobType> jobTypesResponse = metaDataService.createJobTypes(roleRequest);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(jobTypesResponse)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);

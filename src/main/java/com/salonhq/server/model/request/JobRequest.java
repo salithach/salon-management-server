@@ -10,6 +10,6 @@ public class JobRequest {
     String date;
     Double price;
     String description;
-    List<String> service;
+    List<String> services;
     StaffMember assignee;
 }
