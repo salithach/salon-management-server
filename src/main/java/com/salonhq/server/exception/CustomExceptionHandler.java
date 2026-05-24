@@ -59,7 +59,7 @@ public class CustomExceptionHandler {
 	@ExceptionHandler(ExpiredJwtException.class)
 	public final ResponseEntity<?> handleExpiredJwtException(ExpiredJwtException ex) {
 		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
-		envelopedResponse.setErrors(List.of(new ErrorResponse(UNAUTHORIZED.value(), "Token expired, please login again")));
+		envelopedResponse.setErrors(List.of(new ErrorResponse(UNAUTHORIZED.value(), ex.getMessage())));
 		return new ResponseEntity<>(envelopedResponse, UNAUTHORIZED);
 	}
 
