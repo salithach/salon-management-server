@@ -1,0 +1,11 @@
+package com.salonhq.server.service;
+
+import com.salonhq.server.dao.Job;
+import com.salonhq.server.model.request.JobRequest;
+
+import java.util.List;
+
+public interface JobService {
+    Job createJob(JobRequest jobRequest);
+    List<Job> getJobs(String date);
+}

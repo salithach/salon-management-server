@@ -29,15 +29,16 @@ public class JwtUtil {
     public TokenResponse generateJwtToken(Authentication authentication, User user) {
         UserPrinciple userPrincipal = (UserPrinciple) authentication.getPrincipal();
         if (userPrincipal != null) {
+            String username = userPrincipal.getUsername();
             List<String> roles = user.getRoles().stream().map(Role::getName).toList();
             String token = Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
+                .setSubject(username)
                 .claim(ROLES, roles)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date((System.currentTimeMillis() + Long.parseLong(jwtExpirationTime))))
                 .signWith(Keys.hmacShaKeyFor(jwtSecret.getBytes()), SignatureAlgorithm.HS256)
             .compact();
-            return TokenResponse.builder().roles(roles).token(token).build();
+            return TokenResponse.builder().username(username).roles(roles).token(token).build();
         }
         return null;
     }
