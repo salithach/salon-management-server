@@ -1,5 +1,6 @@
 package com.salonhq.server.repository.impl;
 
+import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.repository.AssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,5 +35,11 @@ public class AssignmentRepositoryImpl implements AssignmentRepository {
     @Override
     public DailyAssignment addDailyAssignment(DailyAssignment dailyAssignment) {
         return mongoTemplate.save(dailyAssignment);
+    }
+
+    @Override
+    public DeleteResult removeDailyAssignment(String id) {
+        Query query = Query.query(Criteria.where("_id").is(id));
+        return mongoTemplate.remove(query, DailyAssignment.class);
     }
 }

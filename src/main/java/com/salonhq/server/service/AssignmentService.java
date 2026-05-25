@@ -1,9 +1,11 @@
 package com.salonhq.server.service;
 
 import com.salonhq.server.dao.DailyAssignment;
+import com.salonhq.server.model.response.DeleteResponse;
 
 public interface AssignmentService {
     DailyAssignment getDailyAssignment(String date);
     DailyAssignment createDailyAssignment(DailyAssignment dailyAssignment);
     DailyAssignment unAssignStaffMember(DailyAssignment dailyAssignment);
+    DeleteResponse resetDailyAssignment(String id, String date);
 }

@@ -65,7 +65,7 @@ public class StaffServiceImpl implements StaffService {
         boolean matchFromUnassignment = unAssignedStaffMember.getMembers().stream()
                 .anyMatch(m -> m.getId().equals(staffMember.getId()));
         if (deleteStaffResult.getDeletedCount() == 1 && !matchFromUnassignment) {
-            return DeleteResponse.builder().build();
+            return DeleteResponse.builder().message(String.format("Deleted: %s from staff", username)).build();
         } else {
             throw new StaffOperationException(String.format("Failed to delete staff member: %s", username));
         }

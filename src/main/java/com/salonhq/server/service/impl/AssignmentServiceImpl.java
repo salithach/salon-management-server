@@ -1,8 +1,10 @@
 package com.salonhq.server.service.impl;
 
+import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.exception.StaffOperationException;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.AssignmentRepository;
 import com.salonhq.server.service.AssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,5 +76,15 @@ public class AssignmentServiceImpl implements AssignmentService {
             }
         }
         throw new StaffOperationException(String.format("No assignment found for date: %s", unAssignment.getDate()));
+    }
+
+    @Override
+    public DeleteResponse resetDailyAssignment(String id, String date) {
+        DeleteResult deleteAssignmentResult = assignmentRepository.removeDailyAssignment(id);
+        if (deleteAssignmentResult.getDeletedCount() == 1) {
+            return DeleteResponse.builder().message(String.format("Deleted assignment for: %s", date)).build();
+        } else {
+            throw new RuntimeException(String.format("Failed to delete daily assignment: %s", date));
+        }
     }
 }

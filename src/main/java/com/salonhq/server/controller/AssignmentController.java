@@ -1,6 +1,7 @@
 package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.DailyAssignment;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.AssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,16 @@ public class AssignmentController {
         DailyAssignment dailyAssignment = assignmentService.unAssignStaffMember(unAssignmentRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(dailyAssignment)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{assignmentId}")
+    public ResponseEntity<?> removeFullAssignment(@PathVariable String assignmentId, @RequestParam("date") String date) {
+        DeleteResponse removedAssignment = assignmentService.resetDailyAssignment(assignmentId, date);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(removedAssignment)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
