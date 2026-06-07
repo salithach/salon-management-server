@@ -7,13 +7,10 @@ import com.salonhq.server.repository.MetaDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
-import static com.salonhq.server.util.Constants.DbFields.TENANT_ID;
 
 @Repository
 public class MetaDataRepositoryImpl implements MetaDataRepository {
@@ -27,20 +24,17 @@ public class MetaDataRepositoryImpl implements MetaDataRepository {
 
     @Override
     public List<JobRole> getJobRoles() {
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
-        return mongoTemplate.find(query, JobRole.class);
+        return mongoTemplate.find(new Query(), JobRole.class);
     }
 
     @Override
     public List<JobType> getJobTypes() {
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
-        return mongoTemplate.find(query, JobType.class);
+        return mongoTemplate.find(new Query(), JobType.class);
     }
 
     @Override
     public List<SalonType> getSalonTypes() {
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
-        return mongoTemplate.find(query, SalonType.class);
+        return mongoTemplate.find(new Query(), SalonType.class);
     }
 
     @Override
