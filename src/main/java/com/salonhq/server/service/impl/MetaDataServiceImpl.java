@@ -2,6 +2,7 @@ package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
+import com.salonhq.server.model.KeyValueCategoryPair;
 import com.salonhq.server.model.KeyValuePair;
 import com.salonhq.server.repository.MetaDataRepository;
 import com.salonhq.server.service.MetaDataService;
@@ -35,7 +36,7 @@ public class MetaDataServiceImpl implements MetaDataService {
     }
 
     @Override
-    public List<JobType> createJobTypes(List<KeyValuePair> jobTypes) {
+    public List<JobType> createJobTypes(List<KeyValueCategoryPair> jobTypes) {
         return metaDataRepository.createJobTypes(jobTypes);
     }
 }

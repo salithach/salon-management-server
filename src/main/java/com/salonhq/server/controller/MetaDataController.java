@@ -2,6 +2,7 @@ package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
+import com.salonhq.server.model.KeyValueCategoryPair;
 import com.salonhq.server.model.KeyValuePair;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.model.response.MetaData;
@@ -55,7 +56,7 @@ public class MetaDataController {
     }
 
     @PostMapping("/jobTypes")
-    public ResponseEntity<?> addJobTypes(@RequestBody List<KeyValuePair> roleRequest) {
+    public ResponseEntity<?> addJobTypes(@RequestBody List<KeyValueCategoryPair> roleRequest) {
         List<JobType> jobTypesResponse = metaDataService.createJobTypes(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobTypesResponse)
@@ -65,7 +66,7 @@ public class MetaDataController {
     }
 
     @GetMapping("")
-    public ResponseEntity<?> addJobRoles() {
+    public ResponseEntity<?> getMetadata() {
         List<JobRole> jobRolesResponse = metaDataService.getJobRolesList();
         List<JobType> jobTypesResponse = metaDataService.getJobTypesList();
         MetaData metaData = MetaData.builder()

@@ -2,6 +2,7 @@ package com.salonhq.server.repository.impl;
 
 import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
+import com.salonhq.server.model.KeyValueCategoryPair;
 import com.salonhq.server.model.KeyValuePair;
 import com.salonhq.server.repository.MetaDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,13 +49,14 @@ public class MetaDataRepositoryImpl implements MetaDataRepository {
     }
 
     @Override
-    public List<JobType> createJobTypes(List<KeyValuePair> jobTypeRequest) {
+    public List<JobType> createJobTypes(List<KeyValueCategoryPair> jobTypeRequest) {
         List<JobType> jobTypes = jobTypeRequest.stream()
             .map(jobRole ->
                 JobType.builder()
                     .id(UUID.randomUUID().toString())
                     .key(jobRole.getKey())
                     .value(jobRole.getValue())
+                    .category(jobRole.getCategory())
                 .build()
             )
         .collect(Collectors.toList());

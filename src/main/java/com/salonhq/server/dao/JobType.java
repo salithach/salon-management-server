@@ -1,7 +1,7 @@
 package com.salonhq.server.dao;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.salonhq.server.model.KeyValuePair;
+import com.salonhq.server.model.KeyValueCategoryPair;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -16,7 +16,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "jobTypes")
-public class JobType extends KeyValuePair {
+public class JobType extends KeyValueCategoryPair {
     @Id
     @JsonIgnore
     String id;
