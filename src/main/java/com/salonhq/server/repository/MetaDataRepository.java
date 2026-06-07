@@ -2,14 +2,15 @@ package com.salonhq.server.repository;
 
 import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
-import com.salonhq.server.model.KeyValueCategoryPair;
-import com.salonhq.server.model.KeyValuePair;
+import com.salonhq.server.dao.SalonType;
 
 import java.util.List;
 
 public interface MetaDataRepository {
     List<JobRole> getJobRoles();
     List<JobType> getJobTypes();
-    List<JobRole> createJobRoles(List<KeyValuePair> jobRoleRequest);
-    List<JobType> createJobTypes(List<KeyValueCategoryPair> jobTypeRequest);
+    List<SalonType> getSalonTypes();
+    List<JobRole> createJobRoles(List<JobRole> jobRoles);
+    List<JobType> createJobTypes(List<JobType> jobTypes);
+    List<SalonType> createSalonTypes(List<SalonType> salonTypes);
 }
