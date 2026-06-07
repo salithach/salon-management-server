@@ -22,7 +22,6 @@ import java.util.Set;
 public class User {
     @Id
     String id;
-    String name;
     String email;
     String username;
     @JsonIgnore

@@ -21,7 +21,6 @@ public class UserPrinciple implements UserDetails {
     @Serial
     private static final long serialVersionUID = 1L;
     String id;
-    String name;
     String username;
     String email;
     @JsonIgnore
@@ -34,7 +33,6 @@ public class UserPrinciple implements UserDetails {
             .toList();
         return new UserPrinciple(
             user.getId(),
-            user.getName(),
             user.getUsername(),
             user.getEmail(),
             user.getPassword(),
