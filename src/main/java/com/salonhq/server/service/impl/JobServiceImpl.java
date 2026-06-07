@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,29 +27,27 @@ public class JobServiceImpl implements JobService {
     @Override
     public Job createJob(JobRequest jobRequest) {
         String date = LocalDate.now().toString();
-        StaffMember assignee = jobRequest.getAssignee();
-        String username = assignee.getUsername();
-        String id = String.format("%s-%s-%s", date, jobRequest.getAssignee().getUsername(), "jobs");
-        Job job = Job.builder()
-            .id(id)
-            .date(date)
-            .assignee(username)
-        .build();
-        JobDetails jobDetails = JobDetails.builder()
+        String username = jobRequest.getAssignee().getUsername();
+        String id = String.format("%s-%s-%s", date, username, "jobs");
+        JobDetails newJob = JobDetails.builder()
             .services(jobRequest.getServices())
             .price(jobRequest.getPrice())
             .description(jobRequest.getDescription())
         .build();
-        Optional<Job> jobByUsername = jobRepository.getJobByUsername(username);
-        if(jobByUsername.isPresent()) {
-            Job existingJobByUser = jobByUsername.get();
-            List<JobDetails> existingJobs = existingJobByUser.getJobs();
-            existingJobs.add(jobDetails);
-            job.setJobs(existingJobs);
-        } else {
-            job.setJobs(List.of(jobDetails));
-        }
-        return jobRepository.addJob(job);
+        Job jobToSave = jobRepository.getJobByUsernameAndDate(username, date)
+            .map(existingJob -> {
+                existingJob.getJobs().add(newJob);
+                return existingJob;
+            })
+            .orElseGet(
+                () -> Job.builder()
+                    .id(id)
+                    .date(date)
+                    .assignee(username)
+                    .jobs(new ArrayList<>(List.of(newJob)))
+                .build()
+            );
+        return jobRepository.addJob(jobToSave);
     }
 
     @Override

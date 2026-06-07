@@ -4,6 +4,7 @@ import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
 import com.salonhq.server.model.KeyValuePair;
 import com.salonhq.server.model.response.EnvelopedResponse;
+import com.salonhq.server.model.response.MetaData;
 import com.salonhq.server.service.MetaDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -58,6 +59,21 @@ public class MetaDataController {
         List<JobType> jobTypesResponse = metaDataService.createJobTypes(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobTypesResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @GetMapping("")
+    public ResponseEntity<?> addJobRoles() {
+        List<JobRole> jobRolesResponse = metaDataService.getJobRolesList();
+        List<JobType> jobTypesResponse = metaDataService.getJobTypesList();
+        MetaData metaData = MetaData.builder()
+            .jobRoles(jobRolesResponse)
+            .jobTypes(jobTypesResponse)
+        .build();
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(metaData)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);

@@ -41,4 +41,14 @@ public class JobRepositoryImpl implements JobRepository {
         }
         return Optional.empty();
     }
+
+    @Override
+    public Optional<Job> getJobByUsernameAndDate(String username, String date) {
+        Query query = Query.query(Criteria.where("assignee").is(username).and("date").is(date));
+        Job jobByUsername = mongoTemplate.findOne(query, Job.class);
+        if (jobByUsername != null) {
+            return Optional.of(jobByUsername);
+        }
+        return Optional.empty();
+    }
 }
