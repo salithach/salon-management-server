@@ -6,10 +6,11 @@ import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.convert.MongoConverter;
 
+@Configuration
 public class TenantMongoConfiguration {
 
     @Bean
-    public MongoTemplate mongoTemplate(MongoDatabaseFactory factory, MongoConverter converter) {
+    public MongoTemplate tenantMongoTemplate(MongoDatabaseFactory factory, MongoConverter converter) {
         return new TenantMongoTemplate(factory, converter);
     }
 

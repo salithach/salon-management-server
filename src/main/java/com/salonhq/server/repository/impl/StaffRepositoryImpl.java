@@ -2,9 +2,9 @@ package com.salonhq.server.repository.impl;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.StaffMember;
-import com.salonhq.server.model.tenant.TenantContext;
 import com.salonhq.server.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -22,7 +22,7 @@ public class StaffRepositoryImpl implements StaffRepository {
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public StaffRepositoryImpl(MongoTemplate mongoTemplate) {
+    public StaffRepositoryImpl(@Qualifier("tenantMongoTemplate") MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -34,33 +34,25 @@ public class StaffRepositoryImpl implements StaffRepository {
 
     @Override
     public Optional<StaffMember> getByUsername(String username) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public Optional<StaffMember> getByEmail(String email) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(EMAIL.getValue()).is(email)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(EMAIL.getValue()).is(email));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public Optional<StaffMember> getById(String id) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(ID.getValue()).is(id)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(ID.getValue()).is(id));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public DeleteResult removeStaff(String username) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username));
         return mongoTemplate.remove(query, StaffMember.class);
     }
 
@@ -71,8 +63,6 @@ public class StaffRepositoryImpl implements StaffRepository {
 
     @Override
     public List<StaffMember> retrieveStaff() {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()).is(tenantId));
-        return mongoTemplate.find(query, StaffMember.class);
+        return mongoTemplate.find(new Query(), StaffMember.class);
     }
 }

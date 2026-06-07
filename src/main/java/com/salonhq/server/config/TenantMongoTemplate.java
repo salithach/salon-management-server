@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.query.Query;
 
 import java.util.List;
 
+import static com.salonhq.server.util.Constants.DbFields.TENANT_ID;
+
 public class TenantMongoTemplate extends MongoTemplate {
 
     public TenantMongoTemplate(MongoDatabaseFactory dbFactory, MongoConverter converter) {
@@ -20,13 +22,11 @@ public class TenantMongoTemplate extends MongoTemplate {
         if (query == null) {
             query = new Query();
         }
-
         String tenantId = TenantContext.getTenant();
         if (tenantId == null) {
             throw new RuntimeException("Tenant not set");
         }
-
-        query.addCriteria(Criteria.where("tenantId").is(tenantId));
+        query.addCriteria(Criteria.where(TENANT_ID.getValue()).is(tenantId));
         return query;
     }
 

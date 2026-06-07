@@ -2,7 +2,6 @@ package com.salonhq.server.repository.impl;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.DailyAssignment;
-import com.salonhq.server.model.tenant.TenantContext;
 import com.salonhq.server.repository.AssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -27,9 +26,7 @@ public class AssignmentRepositoryImpl implements AssignmentRepository {
 
     @Override
     public Optional<DailyAssignment> retrieveDailyAssignment(String date) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(DATE.getValue()).is(date)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(DATE.getValue()).is(date));
         List<DailyAssignment> dailyAssignments = mongoTemplate.find(query, DailyAssignment.class);
         if (dailyAssignments.isEmpty()) {
             return Optional.empty();
@@ -44,9 +41,7 @@ public class AssignmentRepositoryImpl implements AssignmentRepository {
 
     @Override
     public DeleteResult removeDailyAssignment(String id) {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(ID.getValue()).is(id)
-            .and(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(ID.getValue()).is(id));
         return mongoTemplate.remove(query, DailyAssignment.class);
     }
 }

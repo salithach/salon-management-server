@@ -3,9 +3,9 @@ package com.salonhq.server.repository.impl;
 import com.salonhq.server.dao.JobRole;
 import com.salonhq.server.dao.JobType;
 import com.salonhq.server.dao.SalonType;
-import com.salonhq.server.model.tenant.TenantContext;
 import com.salonhq.server.repository.MetaDataRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -21,28 +21,25 @@ public class MetaDataRepositoryImpl implements MetaDataRepository {
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public MetaDataRepositoryImpl(MongoTemplate mongoTemplate) {
+    public MetaDataRepositoryImpl(@Qualifier("tenantMongoTemplate") MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
     @Override
     public List<JobRole> getJobRoles() {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
         return mongoTemplate.find(query, JobRole.class);
     }
 
     @Override
     public List<JobType> getJobTypes() {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
         return mongoTemplate.find(query, JobType.class);
     }
 
     @Override
     public List<SalonType> getSalonTypes() {
-        String tenantId = TenantContext.getTenant();
-        Query query = Query.query(Criteria.where(TENANT_ID.getValue()).is(tenantId));
+        Query query = Query.query(Criteria.where(TENANT_ID.getValue()));
         return mongoTemplate.find(query, SalonType.class);
     }
 
