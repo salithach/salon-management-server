@@ -10,8 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-import static com.salonhq.server.util.Constants.EMAIL;
-import static com.salonhq.server.util.Constants.USERNAME;
+import static com.salonhq.server.util.Constants.DbFields.EMAIL;
+import static com.salonhq.server.util.Constants.DbFields.USERNAME;
 
 @Repository
 public class UserRepositoryImpl implements UserRepository {
@@ -25,13 +25,13 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public Optional<User> findByUsername(String username) {
-        Query query = Query.query(Criteria.where(USERNAME).is(username));
+        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username));
         return Optional.ofNullable(mongoTemplate.findOne(query, User.class));
     }
 
     @Override
     public Optional<User> findByUserEmail(String email) {
-        Query query = Query.query(Criteria.where(EMAIL).is(email));
+        Query query = Query.query(Criteria.where(EMAIL.getValue()).is(email));
         return Optional.ofNullable(mongoTemplate.findOne(query, User.class));
     }
 

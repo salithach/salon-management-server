@@ -2,6 +2,7 @@ package com.salonhq.server.util;
 
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.model.response.ErrorResponse;
+import com.salonhq.server.model.tenant.TenantContext;
 import com.salonhq.server.service.CustomUserDetailsService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -45,30 +46,44 @@ public class JwtFilter extends OncePerRequestFilter {
         @NonNull FilterChain filterChain
     ) throws ServletException, IOException
     {
-        String header = request.getHeader(AUTH_HEADER);
-        if (header != null && header.startsWith(String.format("%s ", Constants.BEARER))) {
-            String token = header.substring(7);
-            try {
-                String username = jwtUtil.extractUsername(token);
-                if (username != null &&
-                        SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                    );
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                }
-            } catch (ExpiredJwtException ex) {
-                writeUnauthorizedResponse(response, "Token expired, please login again");
-                return;
-            } catch (JwtException ex) {
-                writeUnauthorizedResponse(response, "Invalid token");
+        try {
+            if (!authenticateRequest(request, response)) {
                 return;
             }
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clear();
         }
-        filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Validates the JWT from the request and sets up the security context.
+     * Returns true if the request should proceed, false if an unauthorized response was written.
+     */
+    private boolean authenticateRequest(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String header = request.getHeader(AUTH_HEADER);
+        if (header == null || !header.startsWith(String.format("%s ", Constants.BEARER))) {
+            return true;
+        }
+        String token = header.substring(7);
+        try {
+            String username = jwtUtil.extractUsername(token);
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities()
+                );
+                SecurityContextHolder.getContext().setAuthentication(auth);
+                TenantContext.setTenant(username);
+            }
+            return true;
+        } catch (ExpiredJwtException ex) {
+            writeUnauthorizedResponse(response, "Token expired, please login again");
+            return false;
+        } catch (JwtException ex) {
+            writeUnauthorizedResponse(response, "Invalid token");
+            return false;
+        }
     }
 
     private void writeUnauthorizedResponse(HttpServletResponse response, String message) throws IOException {

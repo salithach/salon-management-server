@@ -1,6 +1,7 @@
 package com.salonhq.server.dao;
 
 import com.salonhq.server.model.JobDetails;
+import com.salonhq.server.model.tenant.TenantEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "jobs")
-public class Job {
+public class Job extends TenantEntity {
     @Id
     String id;
     String date;

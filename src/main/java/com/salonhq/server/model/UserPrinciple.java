@@ -5,6 +5,7 @@ import com.salonhq.server.dao.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -41,7 +42,7 @@ public class UserPrinciple implements UserDetails {
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    @NonNull public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
     }
 
