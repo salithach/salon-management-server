@@ -1,5 +1,6 @@
 package com.salonhq.server.dao;
 
+import com.salonhq.server.model.tenant.TenantEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "assignments")
-public class DailyAssignment {
+public class DailyAssignment extends TenantEntity {
     @Id
     String id;
     List<StaffMember> members;

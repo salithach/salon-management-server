@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.salonhq.server.model.request.salon.SalonInformation;
 import com.salonhq.server.model.request.salon.SalonLocation;
 import com.salonhq.server.model.request.salon.SalonOwner;
+import com.salonhq.server.model.tenant.TenantEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,7 +20,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "users")
-public class User {
+public class User extends TenantEntity {
     @Id
     String id;
     String email;

@@ -1,5 +1,6 @@
 package com.salonhq.server.dao;
 
+import com.salonhq.server.model.tenant.TenantEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "staff")
-public class StaffMember {
+public class StaffMember extends TenantEntity {
     @Id
     String id;
     String username;
