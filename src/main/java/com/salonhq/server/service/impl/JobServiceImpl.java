@@ -1,7 +1,6 @@
 package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.Job;
-import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.model.JobDetails;
 import com.salonhq.server.model.request.JobRequest;
 import com.salonhq.server.repository.JobRepository;
@@ -12,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class JobServiceImpl implements JobService {
