@@ -5,16 +5,14 @@ import com.salonhq.server.model.request.salon.SalonInformation;
 import com.salonhq.server.model.request.salon.SalonLocation;
 import com.salonhq.server.model.request.salon.SalonOwner;
 import com.salonhq.server.model.tenant.TenantEntity;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.HashSet;
 import java.util.Set;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @Builder
 @NoArgsConstructor
