@@ -1,8 +1,10 @@
 package com.salonhq.server.service.impl;
 
+import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.Job;
 import com.salonhq.server.model.JobDetails;
 import com.salonhq.server.model.request.JobRequest;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.JobRepository;
 import com.salonhq.server.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,6 +53,16 @@ public class JobServiceImpl implements JobService {
     @Override
     public List<Job> getJobs(String date) {
         return jobRepository.getJobs(date);
+    }
+
+    @Override
+    public DeleteResponse removeJobsByDate(String date) {
+        DeleteResult deleteJobsByDateResult = jobRepository.deleteJobsByDate(date);
+        if (deleteJobsByDateResult.getDeletedCount() > 0) {
+            return DeleteResponse.builder().message(String.format("Deleted jobs for: %s", date)).build();
+        } else {
+            throw new RuntimeException(String.format("Failed to delete jobs: %s", date));
+        }
     }
 
 }

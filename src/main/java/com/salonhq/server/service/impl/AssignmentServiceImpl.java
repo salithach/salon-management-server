@@ -6,6 +6,7 @@ import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.exception.StaffOperationException;
 import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.AssignmentRepository;
+import com.salonhq.server.repository.JobRepository;
 import com.salonhq.server.service.AssignmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,10 +20,12 @@ import java.util.UUID;
 public class AssignmentServiceImpl implements AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
+    private final JobRepository jobRepository;
 
     @Autowired
-    public AssignmentServiceImpl(AssignmentRepository assignmentRepository) {
+    public AssignmentServiceImpl(AssignmentRepository assignmentRepository, JobRepository jobRepository) {
         this.assignmentRepository = assignmentRepository;
+        this.jobRepository = jobRepository;
     }
 
     @Override
@@ -81,8 +84,12 @@ public class AssignmentServiceImpl implements AssignmentService {
     @Override
     public DeleteResponse resetDailyAssignment(String id, String date) {
         DeleteResult deleteAssignmentResult = assignmentRepository.removeDailyAssignment(id);
-        if (deleteAssignmentResult.getDeletedCount() == 1) {
-            return DeleteResponse.builder().message(String.format("Deleted assignment for: %s", date)).build();
+        DeleteResult deleteJobByDateResult = jobRepository.deleteJobsByDate(date);
+        if (
+            deleteAssignmentResult.getDeletedCount() == 1 &&
+            deleteJobByDateResult.getDeletedCount() > 0
+        ) {
+            return DeleteResponse.builder().message(String.format("Deleted assignment and jobs for: %s", date)).build();
         } else {
             throw new RuntimeException(String.format("Failed to delete daily assignment: %s", date));
         }

@@ -1,5 +1,6 @@
 package com.salonhq.server.repository.impl;
 
+import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.Job;
 import com.salonhq.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,5 +44,11 @@ public class JobRepositoryImpl implements JobRepository {
             return Optional.of(jobByUsername);
         }
         return Optional.empty();
+    }
+
+    @Override
+    public DeleteResult deleteJobsByDate(String date) {
+        Query query = Query.query(Criteria.where(DATE.getValue()).is(date));
+        return mongoTemplate.remove(query, Job.class);
     }
 }

@@ -2,6 +2,7 @@ package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.Job;
 import com.salonhq.server.model.request.JobRequest;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.JobService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,16 @@ public class JobController {
         List<Job> jobsResponse = jobService.getJobs(date);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobsResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("")
+    public ResponseEntity<?> deleteJobs(@RequestParam("date") String date) {
+        DeleteResponse jobsDeletionResponse = jobService.removeJobsByDate(date);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(jobsDeletionResponse)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
