@@ -2,8 +2,9 @@ package com.salonhq.server.controller;
 
 import com.salonhq.server.model.request.AuthRequest;
 import com.salonhq.server.dao.User;
+import com.salonhq.server.model.request.UserRegisterRequest;
 import com.salonhq.server.model.response.EnvelopedResponse;
-import com.salonhq.server.model.request.RegisterRequest;
+import com.salonhq.server.model.request.salon.SalonRegisterRequest;
 import com.salonhq.server.model.response.TokenResponse;
 import com.salonhq.server.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +38,19 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
-        User userResult = authService.registerUser(registerRequest);
+    @PostMapping("/registerSalon")
+    public ResponseEntity<?> registerSalon(@RequestBody SalonRegisterRequest salonRegisterRequest) {
+        User userResult = authService.registerSalon(salonRegisterRequest);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(userResult)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/registerUser")
+    public ResponseEntity<?> registerUser(@RequestBody UserRegisterRequest userRegisterRequest) {
+        User userResult = authService.registerUser(userRegisterRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(userResult)
             .errors(List.of())

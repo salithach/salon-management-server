@@ -2,7 +2,8 @@ package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.Role;
 import com.salonhq.server.exception.CredentialException;
-import com.salonhq.server.model.request.RegisterRequest;
+import com.salonhq.server.model.request.UserRegisterRequest;
+import com.salonhq.server.model.request.salon.SalonRegisterRequest;
 import com.salonhq.server.model.RoleType;
 import com.salonhq.server.dao.User;
 import com.salonhq.server.model.response.TokenResponse;
@@ -42,25 +43,34 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public User registerUser(RegisterRequest registerRequest) {
-        User userByUsername = userService.getByUsername(registerRequest.getUsername());
-        User userByEmail = userService.getByEmail(registerRequest.getEmail());
+    public User registerSalon(SalonRegisterRequest salonRegisterRequest) {
+        return validateAndRegister(salonRegisterRequest);
+    }
+
+    @Override
+    public User registerUser(UserRegisterRequest userRegisterRequest) {
+        return validateAndRegister(userRegisterRequest);
+    }
+
+    private User validateAndRegister(UserRegisterRequest userRegisterRequest) {
+        User userByUsername = userService.getByUsername(userRegisterRequest.getUsername());
+        User userByEmail = userService.getByEmail(userRegisterRequest.getEmail());
         if (userByUsername != null) {
             throw new CredentialException(USER_NAME_TAKEN.getValue());
         } else if (userByEmail != null) {
             throw new CredentialException(USER_EMAIL_TAKEN.getValue());
         } else {
-            return register(registerRequest);
+            return register(userRegisterRequest);
         }
     }
 
-    private User register(RegisterRequest registerRequest) {
-        User user = registerRequest.toUser();
+    private User register(UserRegisterRequest userRegisterRequest) {
+        User user = userRegisterRequest.toUser();
         Set<Role> roles = new HashSet<>();
-        if (registerRequest.getRoles() == null || registerRequest.getRoles().isEmpty()) {
+        if (userRegisterRequest.getRoles() == null || userRegisterRequest.getRoles().isEmpty()) {
             roles.add(Role.builder().name(RoleType.ROLE_USER.name()).build());
         } else {
-            Set<String> reqRoles = registerRequest.getRoles();
+            Set<String> reqRoles = userRegisterRequest.getRoles();
             reqRoles.forEach(role -> roles.add(
                 Role.builder().name(role.toUpperCase()).build()
             ));

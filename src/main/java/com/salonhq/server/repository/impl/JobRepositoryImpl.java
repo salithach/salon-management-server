@@ -4,6 +4,7 @@ import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.Job;
 import com.salonhq.server.repository.JobRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -20,7 +21,7 @@ public class JobRepositoryImpl implements JobRepository {
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    JobRepositoryImpl(MongoTemplate mongoTemplate) {
+    JobRepositoryImpl(@Qualifier("tenantMongoTemplate") MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 

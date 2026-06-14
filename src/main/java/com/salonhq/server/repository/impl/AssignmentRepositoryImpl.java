@@ -4,6 +4,7 @@ import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.repository.AssignmentRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -20,7 +21,7 @@ public class AssignmentRepositoryImpl implements AssignmentRepository {
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public AssignmentRepositoryImpl(MongoTemplate mongoTemplate) {
+    public AssignmentRepositoryImpl(@Qualifier("tenantMongoTemplate") MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
