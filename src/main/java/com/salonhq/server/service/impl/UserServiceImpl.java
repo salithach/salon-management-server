@@ -1,7 +1,6 @@
 package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.User;
-import com.salonhq.server.repository.StaffRepository;
 import com.salonhq.server.repository.UserRepository;
 import com.salonhq.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +14,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, StaffRepository staffRepository) {
+    public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

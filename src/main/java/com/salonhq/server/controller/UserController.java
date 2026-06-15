@@ -1,6 +1,5 @@
 package com.salonhq.server.controller;
 
-import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.dao.User;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.UserService;

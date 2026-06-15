@@ -5,7 +5,6 @@ import com.salonhq.server.model.request.UserRegisterRequest;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.util.Set;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
