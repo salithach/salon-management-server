@@ -39,6 +39,13 @@ public class CustomExceptionHandler {
 		return ResponseEntity.status(BAD_REQUEST).body(envelopedError);
 	}
 
+	@ExceptionHandler(ActivationException.class)
+	public ResponseEntity<?> handleActivationException(ActivationException ex) {
+		EnvelopedResponse<Object> envelopedError = new EnvelopedResponse<>();
+		envelopedError.setErrors(List.of(new ErrorResponse(CONFLICT.value(), ex.getMessage())));
+		return ResponseEntity.status(CONFLICT).body(envelopedError);
+	}
+
 	@ExceptionHandler({MethodArgumentNotValidException.class})
 	public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
 		List<ErrorResponse> errorList = ex.getBindingResult().getFieldErrors().stream()

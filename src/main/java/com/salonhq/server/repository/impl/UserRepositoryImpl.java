@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -49,5 +50,17 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     public User save(User user) {
         return mongoTemplate.save(user);
+    }
+
+    @Override
+    public User activateUser(String userId) {
+        Query query = Query.query(Criteria.where(ID.getValue()).is(userId));
+        User user = mongoTemplate.findOne(query, User.class);
+        if (user != null && user.isActive()) {
+            throw new RuntimeException("User Already Activated. Please try login!");
+        }
+        Update update = new Update().set("isActive", true);
+        mongoTemplate.updateFirst(query, update, User.class);
+        return user;
     }
 }

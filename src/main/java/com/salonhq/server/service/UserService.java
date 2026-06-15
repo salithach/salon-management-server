@@ -10,4 +10,5 @@ public interface UserService {
     User getByEmail(String email);
     User createUser(User user);
     List<User> getUsers();
+    User activateUser(String userId);
 }

@@ -27,6 +27,7 @@ public class UserPrinciple implements UserDetails {
     @JsonIgnore
     String password;
     Collection<? extends GrantedAuthority> authorities;
+    boolean isActive;
 
     public static UserPrinciple build(User user) {
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
@@ -37,7 +38,8 @@ public class UserPrinciple implements UserDetails {
             user.getUsername(),
             user.getEmail(),
             user.getPassword(),
-            authorities
+            authorities,
+            user.isActive()
         );
     }
 
@@ -63,7 +65,7 @@ public class UserPrinciple implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return isActive;
     }
 
 }

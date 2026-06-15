@@ -13,5 +13,4 @@ public class TenantMongoConfiguration {
     public MongoTemplate tenantMongoTemplate(MongoDatabaseFactory factory, MongoConverter converter) {
         return new TenantMongoTemplate(factory, converter);
     }
-
 }

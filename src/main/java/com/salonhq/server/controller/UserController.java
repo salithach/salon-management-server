@@ -54,4 +54,16 @@ public class UserController {
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PatchMapping("/{userId}/activate")
+    public ResponseEntity<?> activateUser(@PathVariable String userId) {
+        User user = userService.activateUser(userId);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(user)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
 }

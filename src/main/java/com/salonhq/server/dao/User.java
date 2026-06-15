@@ -30,4 +30,6 @@ public class User extends TenantEntity {
     SalonOwner owner;
     SalonInformation salon;
     SalonLocation location;
+    @Builder.Default
+    boolean isActive = false;
 }

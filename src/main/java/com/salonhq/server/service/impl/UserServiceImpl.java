@@ -1,6 +1,7 @@
 package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.User;
+import com.salonhq.server.exception.ActivationException;
 import com.salonhq.server.repository.UserRepository;
 import com.salonhq.server.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +42,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getUsers() {
         return userRepository.findAll();
+    }
+
+    @Override
+    public User activateUser(String userId) {
+       try  {
+           return userRepository.activateUser(userId);
+       } catch (Exception e) {
+           throw new ActivationException("Activation failed: " + e.getMessage());
+       }
     }
 }

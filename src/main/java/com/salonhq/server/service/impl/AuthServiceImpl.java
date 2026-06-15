@@ -83,13 +83,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public TokenResponse loginUser(@NonNull String username, @NonNull String password) {
         User userExists = userService.getByUsername(username);
-        if (userExists != null) {
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            return jwtUtil.generateJwtToken(authentication, userExists);
-        } else {
+        if (userExists == null) {
             throw new CredentialException(INVALID_USERNAME.getValue());
         }
+        if (!userExists.isActive()) {
+            throw new CredentialException(ACCOUNT_INACTIVE.getValue());
+        }
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(username, password));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return jwtUtil.generateJwtToken(authentication, userExists);
     }
 }

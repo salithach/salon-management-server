@@ -11,4 +11,5 @@ public interface UserRepository {
     Optional<User> findByUsername(String username);
     Optional<User> findByUserEmail(String email);
     User save(User user);
+    User activateUser(String userId);
 }
