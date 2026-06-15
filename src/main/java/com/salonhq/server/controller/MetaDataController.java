@@ -39,7 +39,11 @@ public class MetaDataController {
     }
 
     @PostMapping("/jobRoles")
-    public ResponseEntity<?> addJobRole(@RequestBody List<KeyValuePair> roleRequest) {
+    public ResponseEntity<?> addJobRole(
+        @RequestBody List<KeyValuePair> roleRequest,
+        @RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId
+    ) {
+        applyTenantOverride(targetTenantId);
         List<JobRole> jobRolesResponse = metaDataService.createJobRoles(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobRolesResponse)
