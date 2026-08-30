@@ -58,13 +58,13 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     public SalonAppointment updateAppointmentById(String id, AppointmentRequest appointment) {
         SalonAppointment existing = mongoTemplate.findById(id, SalonAppointment.class);
         if (existing == null) return null;
-        existing.setClient(appointment.getClient());
-        existing.setDate(appointment.getDate());
-        existing.setTime(appointment.getTime());
-        existing.setServices(appointment.getServices());
-        existing.setAssignee(appointment.getAssignee());
-        existing.setStatus(appointment.getStatus());
-        existing.setNotes(appointment.getNotes());
+        existing.setClient(appointment.getClient() != null ? appointment.getClient() : existing.getClient());
+        existing.setDate(appointment.getDate() != null ? appointment.getDate() : existing.getDate());
+        existing.setTime(appointment.getTime() != null ? appointment.getTime() : existing.getTime());
+        existing.setServices(appointment.getServices() != null ? appointment.getServices() : existing.getServices());
+        existing.setAssignee(appointment.getAssignee() != null ? appointment.getAssignee() : existing.getAssignee());
+        existing.setStatus(appointment.getStatus() != null ? appointment.getStatus() : existing.getStatus());
+        existing.setNotes(appointment.getNotes() != null ? appointment.getNotes() : existing.getNotes());
         return mongoTemplate.save(existing);
     }
 

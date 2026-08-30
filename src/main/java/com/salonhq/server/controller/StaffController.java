@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-import static com.salonhq.server.util.AuthUtil.applyTenantOverride;
-
 @RestController
 @RequestMapping("/api/v1/staff")
 public class StaffController {
@@ -28,7 +26,6 @@ public class StaffController {
     public ResponseEntity<?> getStaffMembers(
         @RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId
     ) {
-        applyTenantOverride(targetTenantId);
         List<StaffMember> staffMembers = staffService.getStaff();
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(staffMembers)
