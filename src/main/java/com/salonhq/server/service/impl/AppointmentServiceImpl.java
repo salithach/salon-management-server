@@ -7,6 +7,7 @@ import com.salonhq.server.model.request.AppointmentRequest;
 import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.AppointmentRepository;
 import com.salonhq.server.service.AppointmentService;
+import com.salonhq.server.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,12 @@ import java.util.List;
 public class AppointmentServiceImpl implements AppointmentService {
 
     private final AppointmentRepository appointmentRepository;
+    private final ClientService clientService;
 
     @Autowired
-    public AppointmentServiceImpl(AppointmentRepository appointmentRepository) {
+    public AppointmentServiceImpl(AppointmentRepository appointmentRepository, ClientService clientService) {
         this.appointmentRepository = appointmentRepository;
+        this.clientService = clientService;
     }
 
     @Override
@@ -33,6 +36,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public SalonAppointment createAppointment(AppointmentRequest appointmentRequest) {
+        if (appointmentRequest.getClient() != null) {
+            clientService.saveClient(appointmentRequest.getClient());
+        }
         return appointmentRepository.addAppointment(appointmentRequest);
     }
 
