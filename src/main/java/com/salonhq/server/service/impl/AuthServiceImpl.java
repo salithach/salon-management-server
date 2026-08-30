@@ -2,8 +2,8 @@ package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.Role;
 import com.salonhq.server.exception.CredentialException;
-import com.salonhq.server.model.request.UserRegisterRequest;
-import com.salonhq.server.model.request.salon.SalonRegisterRequest;
+import com.salonhq.server.model.request.UserRegistrationRequest;
+import com.salonhq.server.model.request.SalonRegistrationRequest;
 import com.salonhq.server.model.RoleType;
 import com.salonhq.server.dao.User;
 import com.salonhq.server.model.response.TokenResponse;
@@ -43,34 +43,34 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public User registerSalon(SalonRegisterRequest salonRegisterRequest) {
-        return validateAndRegister(salonRegisterRequest);
+    public User registerSalon(SalonRegistrationRequest salonRegistrationRequest) {
+        return validateAndRegister(salonRegistrationRequest);
     }
 
     @Override
-    public User registerUser(UserRegisterRequest userRegisterRequest) {
-        return validateAndRegister(userRegisterRequest);
+    public User registerUser(UserRegistrationRequest userRegistrationRequest) {
+        return validateAndRegister(userRegistrationRequest);
     }
 
-    private User validateAndRegister(UserRegisterRequest userRegisterRequest) {
-        User userByUsername = userService.getByUsername(userRegisterRequest.getUsername());
-        User userByEmail = userService.getByEmail(userRegisterRequest.getEmail());
+    private User validateAndRegister(UserRegistrationRequest userRegistrationRequest) {
+        User userByUsername = userService.getByUsername(userRegistrationRequest.getUsername());
+        User userByEmail = userService.getByEmail(userRegistrationRequest.getEmail());
         if (userByUsername != null) {
             throw new CredentialException(USER_NAME_TAKEN.getValue());
         } else if (userByEmail != null) {
             throw new CredentialException(USER_EMAIL_TAKEN.getValue());
         } else {
-            return register(userRegisterRequest);
+            return register(userRegistrationRequest);
         }
     }
 
-    private User register(UserRegisterRequest userRegisterRequest) {
-        User user = userRegisterRequest.toUser();
+    private User register(UserRegistrationRequest userRegistrationRequest) {
+        User user = userRegistrationRequest.toUser();
         Set<Role> roles = new HashSet<>();
-        if (userRegisterRequest.getRoles() == null || userRegisterRequest.getRoles().isEmpty()) {
+        if (userRegistrationRequest.getRoles() == null || userRegistrationRequest.getRoles().isEmpty()) {
             roles.add(Role.builder().name(RoleType.ROLE_USER.name()).build());
         } else {
-            Set<String> reqRoles = userRegisterRequest.getRoles();
+            Set<String> reqRoles = userRegistrationRequest.getRoles();
             reqRoles.forEach(role -> roles.add(
                 Role.builder().name(role.toUpperCase()).build()
             ));

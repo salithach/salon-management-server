@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Data
-public class UserRegisterRequest {
+public class UserRegistrationRequest {
     protected String email;
     protected String username;
     protected String password;

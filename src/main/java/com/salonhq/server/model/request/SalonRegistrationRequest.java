@@ -1,7 +1,9 @@
-package com.salonhq.server.model.request.salon;
+package com.salonhq.server.model.request;
 
 import com.salonhq.server.dao.User;
-import com.salonhq.server.model.request.UserRegisterRequest;
+import com.salonhq.server.model.request.salon.SalonInformation;
+import com.salonhq.server.model.request.salon.SalonLocation;
+import com.salonhq.server.model.request.salon.SalonOwner;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -9,7 +11,7 @@ import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class SalonRegisterRequest extends UserRegisterRequest {
+public class SalonRegistrationRequest extends UserRegistrationRequest {
     SalonOwner owner;
     SalonInformation salon;
     SalonLocation location;
