@@ -2,6 +2,7 @@ package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.SalonAppointment;
 import com.salonhq.server.model.request.AppointmentRequest;
+import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.AppointmentService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,29 @@ public class AppointmentController {
         SalonAppointment appointmentResponse = appointmentService.createAppointment(appointmentRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(appointmentResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PutMapping("/{appointmentId}")
+    public ResponseEntity<?> editAppointment(
+        @PathVariable String appointmentId,
+        @RequestBody AppointmentRequest appointmentRequest
+    ) {
+        SalonAppointment appointmentResponse = appointmentService.editAppointment(appointmentId, appointmentRequest);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(appointmentResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{appointmentId}")
+    public ResponseEntity<?> deleteAppointment(@PathVariable String appointmentId) {
+        DeleteResponse deleteResponse = appointmentService.deleteAppointment(appointmentId);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(deleteResponse)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
