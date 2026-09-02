@@ -23,30 +23,47 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("/hello")
-    public String user() {
-        return "Hello User";
-    }
-
-    @PreAuthorize("hasAnyRole('USER')")
-    @GetMapping("/hello-user")
-    public String userTest() {
-        return "Hello User Restricted";
-    }
-
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    @GetMapping("/hello-admin")
-    public String adminTest() {
-        return "Hello Admin Restricted";
-    }
-
     @GetMapping("/me")
-    public ResponseEntity<?> getMe(Authentication authentication) {
+    public ResponseEntity<?> getLoggedInUserInfo(Authentication authentication) {
         User user = userService.getByUsername(authentication.getName());
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(user)
             .errors(List.of())
-            .build();
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("")
+    public ResponseEntity<?> getUsers() {
+        List<User> users = userService.getUsers();
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(users)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserByUserById(@PathVariable String userId) {
+        User user = userService.getByUserById(userId);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(user)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    @PatchMapping("/{userId}/activate")
+    public ResponseEntity<?> activateUser(@PathVariable String userId) {
+        User user = userService.activateUser(userId);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(user)
+            .errors(List.of())
+        .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }

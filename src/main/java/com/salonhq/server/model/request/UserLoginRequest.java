@@ -3,7 +3,7 @@ package com.salonhq.server.model.request;
 import lombok.Data;
 
 @Data
-public class AuthRequest {
+public class UserLoginRequest {
     String username;
     String password;
 }

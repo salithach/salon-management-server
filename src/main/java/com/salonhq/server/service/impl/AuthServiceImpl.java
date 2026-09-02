@@ -2,7 +2,8 @@ package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.Role;
 import com.salonhq.server.exception.CredentialException;
-import com.salonhq.server.model.request.RegisterRequest;
+import com.salonhq.server.model.request.UserRegistrationRequest;
+import com.salonhq.server.model.request.SalonRegistrationRequest;
 import com.salonhq.server.model.RoleType;
 import com.salonhq.server.dao.User;
 import com.salonhq.server.model.response.TokenResponse;
@@ -42,25 +43,34 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public User registerUser(RegisterRequest registerRequest) {
-        User userByUsername = userService.getByUsername(registerRequest.getUsername());
-        User userByEmail = userService.getByEmail(registerRequest.getEmail());
+    public User registerSalon(SalonRegistrationRequest salonRegistrationRequest) {
+        return validateAndRegister(salonRegistrationRequest);
+    }
+
+    @Override
+    public User registerUser(UserRegistrationRequest userRegistrationRequest) {
+        return validateAndRegister(userRegistrationRequest);
+    }
+
+    private User validateAndRegister(UserRegistrationRequest userRegistrationRequest) {
+        User userByUsername = userService.getByUsername(userRegistrationRequest.getUsername());
+        User userByEmail = userService.getByEmail(userRegistrationRequest.getEmail());
         if (userByUsername != null) {
             throw new CredentialException(USER_NAME_TAKEN.getValue());
         } else if (userByEmail != null) {
             throw new CredentialException(USER_EMAIL_TAKEN.getValue());
         } else {
-            return register(registerRequest);
+            return register(userRegistrationRequest);
         }
     }
 
-    private User register(RegisterRequest registerRequest) {
-        User user = registerRequest.toUser();
+    private User register(UserRegistrationRequest userRegistrationRequest) {
+        User user = userRegistrationRequest.toUser();
         Set<Role> roles = new HashSet<>();
-        if (registerRequest.getRoles() == null || registerRequest.getRoles().isEmpty()) {
+        if (userRegistrationRequest.getRoles() == null || userRegistrationRequest.getRoles().isEmpty()) {
             roles.add(Role.builder().name(RoleType.ROLE_USER.name()).build());
         } else {
-            Set<String> reqRoles = registerRequest.getRoles();
+            Set<String> reqRoles = userRegistrationRequest.getRoles();
             reqRoles.forEach(role -> roles.add(
                 Role.builder().name(role.toUpperCase()).build()
             ));
@@ -73,13 +83,15 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public TokenResponse loginUser(@NonNull String username, @NonNull String password) {
         User userExists = userService.getByUsername(username);
-        if (userExists != null) {
-            Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            return jwtUtil.generateJwtToken(authentication, userExists);
-        } else {
+        if (userExists == null) {
             throw new CredentialException(INVALID_USERNAME.getValue());
         }
+        if (!userExists.isActive()) {
+            throw new CredentialException(ACCOUNT_INACTIVE.getValue());
+        }
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(username, password));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return jwtUtil.generateJwtToken(authentication, userExists);
     }
 }

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import static com.salonhq.server.util.AuthUtil.applyTenantOverride;
+
 @RestController
 @RequestMapping("/api/v1/metadata")
 public class MetaDataController {
@@ -26,7 +28,8 @@ public class MetaDataController {
     }
 
     @GetMapping("/jobRoles")
-    public ResponseEntity<?> getJobRoles() {
+    public ResponseEntity<?> getJobRoles(@RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId) {
+        applyTenantOverride(targetTenantId);
         List<JobRole> jobRolesResponse = metaDataService.getJobRolesList();
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobRolesResponse)
@@ -36,7 +39,11 @@ public class MetaDataController {
     }
 
     @PostMapping("/jobRoles")
-    public ResponseEntity<?> addJobRole(@RequestBody List<KeyValuePair> roleRequest) {
+    public ResponseEntity<?> addJobRole(
+        @RequestBody List<KeyValuePair> roleRequest,
+        @RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId
+    ) {
+        applyTenantOverride(targetTenantId);
         List<JobRole> jobRolesResponse = metaDataService.createJobRoles(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobRolesResponse)
@@ -46,7 +53,8 @@ public class MetaDataController {
     }
 
     @GetMapping("/jobTypes")
-    public ResponseEntity<?> getJobTypes() {
+    public ResponseEntity<?> getJobTypes(@RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId) {
+        applyTenantOverride(targetTenantId);
         List<JobType> jobTypesResponse = metaDataService.getJobTypesList();
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobTypesResponse)
@@ -56,7 +64,11 @@ public class MetaDataController {
     }
 
     @PostMapping("/jobTypes")
-    public ResponseEntity<?> addJobTypes(@RequestBody List<KeyValueCategoryPair> roleRequest) {
+    public ResponseEntity<?> addJobTypes(
+        @RequestBody List<KeyValueCategoryPair> roleRequest,
+        @RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId
+    ) {
+        applyTenantOverride(targetTenantId);
         List<JobType> jobTypesResponse = metaDataService.createJobTypes(roleRequest);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(jobTypesResponse)
@@ -66,7 +78,8 @@ public class MetaDataController {
     }
 
     @GetMapping("")
-    public ResponseEntity<?> getMetadata() {
+    public ResponseEntity<?> getMetadata(@RequestHeader(value = "X-Tenant-Id", required = false) String targetTenantId) {
+        applyTenantOverride(targetTenantId);
         List<JobRole> jobRolesResponse = metaDataService.getJobRolesList();
         List<JobType> jobTypesResponse = metaDataService.getJobTypesList();
         MetaData metaData = MetaData.builder()
@@ -79,4 +92,5 @@ public class MetaDataController {
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
+
 }
