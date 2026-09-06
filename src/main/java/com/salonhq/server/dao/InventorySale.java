@@ -10,16 +10,14 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "inventory")
-public class InventoryItem extends TenantEntity {
+@Document(collection = "sales")
+public class InventorySale extends TenantEntity {
     @Id
     String id;
+    String itemId;
     String name;
-    String category;
     Integer quantity;
-    String unit;
     Double price;
-    Integer threshold;
-    String status;
+    Double totalPrice;
 }
 

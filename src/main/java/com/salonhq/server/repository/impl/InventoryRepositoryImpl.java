@@ -2,6 +2,7 @@ package com.salonhq.server.repository.impl;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.InventoryItem;
+import com.salonhq.server.dao.InventorySale;
 import com.salonhq.server.model.request.InventoryItemRequest;
 import com.salonhq.server.repository.InventoryRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ public class InventoryRepositoryImpl implements InventoryRepository {
         item.setQuantity(request.getQuantity());
         item.setUnit(request.getUnit());
         item.setThreshold(request.getThreshold());
+        item.setPrice(request.getPrice());
         item.setStatus(determineStatus(request.getQuantity(), request.getThreshold()));
         return mongoTemplate.save(item);
     }
@@ -55,6 +57,7 @@ public class InventoryRepositoryImpl implements InventoryRepository {
         existing.setCategory(request.getCategory() != null ? request.getCategory() : existing.getCategory());
         existing.setQuantity(request.getQuantity() != null ? request.getQuantity() : existing.getQuantity());
         existing.setUnit(request.getUnit() != null ? request.getUnit() : existing.getUnit());
+        existing.setPrice(request.getPrice() != null ? request.getPrice() : existing.getPrice());
         existing.setThreshold(request.getThreshold() != null ? request.getThreshold() : existing.getThreshold());
         existing.setStatus(determineStatus(existing.getQuantity(), existing.getThreshold()));
         return mongoTemplate.save(existing);
@@ -64,6 +67,12 @@ public class InventoryRepositoryImpl implements InventoryRepository {
     public DeleteResult deleteInventoryItemById(String id) {
         Query query = Query.query(Criteria.where("id").is(id));
         return mongoTemplate.remove(query, InventoryItem.class);
+    }
+
+    @Override
+    public InventorySale recordInventorySale(String itemId, InventorySale sale) {
+        sale.setId(UUID.randomUUID().toString());
+        return mongoTemplate.save(sale);
     }
 
     private String determineStatus(Integer quantity, Integer threshold) {

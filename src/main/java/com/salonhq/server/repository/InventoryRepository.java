@@ -2,6 +2,7 @@ package com.salonhq.server.repository;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.InventoryItem;
+import com.salonhq.server.dao.InventorySale;
 import com.salonhq.server.model.request.InventoryItemRequest;
 
 import java.util.List;
@@ -12,5 +13,6 @@ public interface InventoryRepository {
     InventoryItem addInventoryItem(InventoryItemRequest request);
     InventoryItem updateInventoryItemById(String id, InventoryItemRequest request);
     DeleteResult deleteInventoryItemById(String id);
+    InventorySale recordInventorySale(String itemId, InventorySale sale);
 }
 

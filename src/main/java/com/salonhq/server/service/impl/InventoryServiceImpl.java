@@ -2,8 +2,10 @@ package com.salonhq.server.service.impl;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.InventoryItem;
+import com.salonhq.server.dao.InventorySale;
 import com.salonhq.server.exception.InventoryOperationException;
 import com.salonhq.server.model.request.InventoryItemRequest;
+import com.salonhq.server.model.request.InventorySaleRequest;
 import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.InventoryRepository;
 import com.salonhq.server.service.InventoryService;
@@ -78,6 +80,45 @@ public class InventoryServiceImpl implements InventoryService {
         summary.put("outOfStock", outOfStock);
 
         return summary;
+    }
+
+    @Override
+    public InventorySale sellInventoryItem(String itemId, InventorySaleRequest request) {
+        InventoryItem existing = inventoryRepository.getInventoryItemById(itemId);
+        if (existing == null) {
+            throw new InventoryOperationException(String.format("Inventory item not found for id: %s", itemId));
+        }
+        if (!itemId.equalsIgnoreCase(request.getId())) {
+            throw new InventoryOperationException(String.format("Inventory item id: %s should be same as sale id: %s", itemId, request.getId()));
+        }
+        if (!existing.getId().equalsIgnoreCase(request.getId()) || !existing.getId().equalsIgnoreCase(itemId)) {
+            throw new InventoryOperationException(String.format("Inventory item id: %s should be same as sale id: %s", itemId, existing.getId()));
+        }
+        Integer quantitySold = request.getQuantity();
+        if (existing.getQuantity() < quantitySold) {
+            throw new InventoryOperationException(String.format("Not enough stock for item id: %s", itemId));
+        }
+        try {
+            existing.setQuantity(existing.getQuantity() - quantitySold);
+            inventoryRepository.updateInventoryItemById(itemId, new InventoryItemRequest(
+                existing.getName(),
+                existing.getCategory(),
+                existing.getQuantity(),
+                existing.getUnit(),
+                existing.getThreshold(),
+                existing.getPrice()
+            ));
+            InventorySale inventorySale = InventorySale.builder()
+                .itemId(itemId)
+                .name(existing.getName())
+                .price(request.getPrice())
+                .totalPrice(request.getPrice() * quantitySold)
+                .quantity(quantitySold)
+            .build();
+            return inventoryRepository.recordInventorySale(itemId, inventorySale);
+        } catch (Exception e) {
+            throw new InventoryOperationException(String.format("Failed to record sale for item id: %s", itemId));
+        }
     }
 }
 

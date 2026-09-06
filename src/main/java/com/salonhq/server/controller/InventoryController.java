@@ -1,7 +1,9 @@
 package com.salonhq.server.controller;
 
 import com.salonhq.server.dao.InventoryItem;
+import com.salonhq.server.dao.InventorySale;
 import com.salonhq.server.model.request.InventoryItemRequest;
+import com.salonhq.server.model.request.InventorySaleRequest;
 import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.model.response.EnvelopedResponse;
 import com.salonhq.server.service.InventoryService;
@@ -82,6 +84,19 @@ public class InventoryController {
         DeleteResponse deleteResponse = inventoryService.deleteInventoryItem(itemId);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(deleteResponse)
+            .errors(List.of())
+        .build();
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @PostMapping("/{itemId}/sales")
+    public ResponseEntity<?> sellInventoryItem(
+        @PathVariable String itemId,
+        @RequestBody InventorySaleRequest request
+    ) {
+        InventorySale saleResponse = inventoryService.sellInventoryItem(itemId, request);
+        EnvelopedResponse<Object> response = EnvelopedResponse.builder()
+            .data(saleResponse)
             .errors(List.of())
         .build();
         return ResponseEntity.status(HttpStatus.OK).body(response);
