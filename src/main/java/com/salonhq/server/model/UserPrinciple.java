@@ -5,6 +5,7 @@ import com.salonhq.server.dao.User;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,6 +27,7 @@ public class UserPrinciple implements UserDetails {
     @JsonIgnore
     String password;
     Collection<? extends GrantedAuthority> authorities;
+    boolean isActive;
 
     public static UserPrinciple build(User user) {
         List<SimpleGrantedAuthority> authorities = user.getRoles().stream()
@@ -36,12 +38,13 @@ public class UserPrinciple implements UserDetails {
             user.getUsername(),
             user.getEmail(),
             user.getPassword(),
-            authorities
+            authorities,
+            user.isActive()
         );
     }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    @NonNull public Collection<? extends GrantedAuthority> getAuthorities() {
         return authorities;
     }
 
@@ -62,7 +65,7 @@ public class UserPrinciple implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return isActive;
     }
 
 }
