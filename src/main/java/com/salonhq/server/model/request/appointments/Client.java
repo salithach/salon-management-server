@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Client {
+    String id;
     String name;
     String phone;
     String email;

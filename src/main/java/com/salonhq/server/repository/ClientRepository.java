@@ -8,5 +8,6 @@ import java.util.List;
 public interface ClientRepository {
     SalonClient upsertClient(Client client);
     List<SalonClient> getAllClients();
+    SalonClient getClientById(String id);
 }
 

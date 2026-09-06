@@ -2,8 +2,10 @@ package com.salonhq.server.service.impl;
 
 import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.SalonAppointment;
+import com.salonhq.server.dao.SalonClient;
 import com.salonhq.server.exception.AppointmentOperationException;
 import com.salonhq.server.model.request.AppointmentRequest;
+import com.salonhq.server.model.request.appointments.Client;
 import com.salonhq.server.model.response.DeleteResponse;
 import com.salonhq.server.repository.AppointmentRepository;
 import com.salonhq.server.service.AppointmentService;
@@ -37,7 +39,14 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public SalonAppointment createAppointment(AppointmentRequest appointmentRequest) {
         if (appointmentRequest.getClient() != null) {
-            clientService.saveClient(appointmentRequest.getClient());
+            SalonClient salonClient = clientService.saveClient(appointmentRequest.getClient());
+            Client clientToUpdate = Client.builder()
+                .id(salonClient.getId())
+                .name(salonClient.getName())
+                .phone(salonClient.getPhone())
+                .email(salonClient.getEmail())
+            .build();
+            appointmentRequest.setClient(clientToUpdate);
         }
         return appointmentRepository.addAppointment(appointmentRequest);
     }
