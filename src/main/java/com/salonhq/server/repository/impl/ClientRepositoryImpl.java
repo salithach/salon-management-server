@@ -78,5 +78,10 @@ public class ClientRepositoryImpl implements ClientRepository {
     public SalonClient getClientById(String id) {
         return mongoTemplate.findOne(Query.query(Criteria.where("id").is(id)), SalonClient.class);
     }
+
+    @Override
+    public SalonClient deleteClientById(String id) {
+        return mongoTemplate.findAndRemove(Query.query(Criteria.where("id").is(id)), SalonClient.class);
+    }
 }
 

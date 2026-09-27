@@ -9,5 +9,6 @@ public interface ClientRepository {
     SalonClient upsertClient(Client client);
     List<SalonClient> getAllClients();
     SalonClient getClientById(String id);
+    SalonClient deleteClientById(String id);
 }
 

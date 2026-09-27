@@ -48,5 +48,10 @@ public class ClientServiceImpl implements ClientService {
     public SalonClient getClientById(String id) {
         return clientRepository.getClientById(id);
     }
+
+    @Override
+    public SalonClient deleteClientById(String id) {
+        return clientRepository.deleteClientById(id);
+    }
 }
 

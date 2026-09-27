@@ -9,5 +9,6 @@ public interface ClientService {
     SalonClient saveClient(Client client);
     List<SalonClient> getClients();
     SalonClient getClientById(String id);
+    SalonClient deleteClientById(String id);
 }
 
