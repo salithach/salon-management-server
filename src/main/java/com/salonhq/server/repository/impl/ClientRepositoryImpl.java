@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,6 +46,7 @@ public class ClientRepositoryImpl implements ClientRepository {
                 .name(client.getName())
                 .phone(client.getPhone())
                 .email(client.getEmail())
+                .createdAt(LocalDate.now().toString())
                 .build();
             return mongoTemplate.save(newClient);
         }
@@ -72,6 +74,14 @@ public class ClientRepositoryImpl implements ClientRepository {
     @Override
     public List<SalonClient> getAllClients() {
         return mongoTemplate.find(new Query(), SalonClient.class);
+    }
+
+    @Override
+    public List<SalonClient> getClientsCreatedBetween(String startDate, String endDate) {
+        return mongoTemplate.find(
+            Query.query(Criteria.where("createdAt").gte(startDate).lte(endDate)),
+            SalonClient.class
+        );
     }
 
     @Override

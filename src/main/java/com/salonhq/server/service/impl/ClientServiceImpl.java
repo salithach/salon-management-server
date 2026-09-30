@@ -45,6 +45,11 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    public List<SalonClient> getClientsCreatedBetween(String startDate, String endDate) {
+        return clientRepository.getClientsCreatedBetween(startDate, endDate);
+    }
+
+    @Override
     public SalonClient getClientById(String id) {
         return clientRepository.getClientById(id);
     }

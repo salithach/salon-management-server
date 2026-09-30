@@ -41,6 +41,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentRepository.getAppointmentsBetween(startDate, endDate);
     }
 
+
     @Override
     public SalonAppointment createAppointment(AppointmentRequest appointmentRequest) {
         if (appointmentRequest.getClient() != null) {

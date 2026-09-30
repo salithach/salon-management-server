@@ -22,4 +22,11 @@ public class Constants {
         }
     }
 
+    public static final class AppointmentStatus {
+        private AppointmentStatus() {}
+        public static final String CONFIRMED = "CONFIRMED";
+        public static final String PENDING = "PENDING";
+        public static final String CANCELLED = "CANCELLED";
+    }
+
 }

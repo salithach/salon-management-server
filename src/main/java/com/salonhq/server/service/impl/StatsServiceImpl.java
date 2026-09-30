@@ -19,9 +19,11 @@ import com.salonhq.server.model.response.stats.ServiceRevenue;
 import com.salonhq.server.model.response.stats.StaffWorkRow;
 import com.salonhq.server.service.AppointmentService;
 import com.salonhq.server.service.AssignmentService;
+import com.salonhq.server.service.ClientService;
 import com.salonhq.server.service.JobService;
 import com.salonhq.server.service.MetaDataService;
 import com.salonhq.server.service.StatsService;
+import com.salonhq.server.util.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -38,36 +40,42 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static com.salonhq.server.util.StatsUtil.countByStatus;
+import static com.salonhq.server.util.StatsUtil.percentChange;
+import static com.salonhq.server.util.StatsUtil.round1;
+import static com.salonhq.server.util.StatsUtil.sumJobRevenue;
+
 @Service
 public class StatsServiceImpl implements StatsService {
 
-    private static final String CONFIRMED = "CONFIRMED";
-    private static final String PENDING = "PENDING";
-    private static final String CANCELLED = "CANCELLED";
+    private static final String CONFIRMED = Constants.AppointmentStatus.CONFIRMED;
+    private static final String PENDING = Constants.AppointmentStatus.PENDING;
+    private static final String CANCELLED = Constants.AppointmentStatus.CANCELLED;
     private static final String OTHERS = "Others";
     private static final String OTHER_CATEGORY = "Other";
     private static final int SERVICE_REVENUE_TOP_N = 4;
     private static final int TRAILING_DAYS = 7;
     private static final int TRAILING_MONTHS = 7;
-    private static final String EARLIEST_DATE_BOUND = "0000-01-01";
-    private static final String LATEST_DATE_BOUND = "9999-12-31";
 
     private final AppointmentService appointmentService;
     private final JobService jobService;
     private final AssignmentService assignmentService;
     private final MetaDataService metaDataService;
+    private final ClientService clientService;
 
     @Autowired
     public StatsServiceImpl(
         AppointmentService appointmentService,
         JobService jobService,
         AssignmentService assignmentService,
-        MetaDataService metaDataService
+        MetaDataService metaDataService,
+        ClientService clientService
     ) {
         this.appointmentService = appointmentService;
         this.jobService = jobService;
         this.assignmentService = assignmentService;
         this.metaDataService = metaDataService;
+        this.clientService = clientService;
     }
 
     @Override
@@ -92,9 +100,8 @@ public class StatsServiceImpl implements StatsService {
         MonthlyBreakdownRow previousMonthRow = buildMonthRow(previousMonth);
 
         List<Job> currentMonthJobs = jobService.getJobsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString());
-        List<SalonAppointment> allAppointments = appointmentService.getAppointmentsBetween(EARLIEST_DATE_BOUND, LATEST_DATE_BOUND);
 
-        OverviewStats overview = buildOverview(currentMonthRow, previousMonthRow, currentMonth, previousMonth, allAppointments);
+        OverviewStats overview = buildOverview(currentMonthRow, previousMonthRow, currentMonth, previousMonth);
         List<ServiceRevenue> revenueByService = buildRevenueByService(currentMonthJobs);
         List<CategoryShare> servicesMix = buildServicesMix(
             appointmentService.getAppointmentsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString())
@@ -150,21 +157,14 @@ public class StatsServiceImpl implements StatsService {
         MonthlyBreakdownRow currentMonthRow,
         MonthlyBreakdownRow previousMonthRow,
         YearMonth currentMonth,
-        YearMonth previousMonth,
-        List<SalonAppointment> allAppointments
+        YearMonth previousMonth
     ) {
-        Map<String, LocalDate> firstAppointmentDateByClient = new LinkedHashMap<>();
-        for (SalonAppointment appointment : allAppointments) {
-            if (appointment.getClient() == null || appointment.getClient().getId() == null || appointment.getDate() == null) {
-                continue;
-            }
-            String clientId = appointment.getClient().getId();
-            LocalDate appointmentDate = LocalDate.parse(appointment.getDate());
-            firstAppointmentDateByClient.merge(clientId, appointmentDate, (existing, candidate) -> candidate.isBefore(existing) ? candidate : existing);
-        }
-
-        int newClientsCurrentMonth = countClientsFirstSeenInMonth(firstAppointmentDateByClient, currentMonth);
-        int newClientsPreviousMonth = countClientsFirstSeenInMonth(firstAppointmentDateByClient, previousMonth);
+        int newClientsCurrentMonth = clientService.getClientsCreatedBetween(
+            currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString()
+        ).size();
+        int newClientsPreviousMonth = clientService.getClientsCreatedBetween(
+            previousMonth.atDay(1).toString(), previousMonth.atEndOfMonth().toString()
+        ).size();
 
         double avgTicket = currentMonthRow.getAvgTicket();
         double previousAvgTicket = previousMonthRow.getAvgTicket();
@@ -181,13 +181,6 @@ public class StatsServiceImpl implements StatsService {
         .build();
     }
 
-    private int countClientsFirstSeenInMonth(Map<String, LocalDate> firstAppointmentDateByClient, YearMonth month) {
-        LocalDate start = month.atDay(1);
-        LocalDate end = month.atEndOfMonth();
-        return (int) firstAppointmentDateByClient.values().stream()
-            .filter(d -> !d.isBefore(start) && !d.isAfter(end))
-            .count();
-    }
 
     // ---------- Revenue by service ----------
 
@@ -411,35 +404,5 @@ public class StatsServiceImpl implements StatsService {
             })
             .sorted(Comparator.comparingInt(StaffWorkRow::getJobs).reversed())
             .collect(Collectors.toList());
-    }
-
-    // ---------- Shared helpers ----------
-
-    private int countByStatus(List<SalonAppointment> appointments, String status) {
-        return (int) appointments.stream().filter(a -> status.equalsIgnoreCase(a.getStatus())).count();
-    }
-
-    private double sumJobRevenue(List<Job> jobs) {
-        double total = 0;
-        for (Job job : jobs) {
-            if (job.getJobs() == null) continue;
-            for (JobDetails jobDetails : job.getJobs()) {
-                if (jobDetails.getPrice() != null) {
-                    total += jobDetails.getPrice();
-                }
-            }
-        }
-        return total;
-    }
-
-    private double percentChange(double current, double previous) {
-        if (previous == 0) {
-            return current == 0 ? 0 : 100.0;
-        }
-        return round1(((current - previous) / previous) * 100.0);
-    }
-
-    private double round1(double value) {
-        return Math.round(value * 10.0) / 10.0;
     }
 }

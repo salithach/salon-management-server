@@ -1,8 +1,5 @@
 package com.salonhq.server.model.response;
 
-import com.salonhq.server.dao.DailyAssignment;
-import com.salonhq.server.dao.Job;
-import com.salonhq.server.dao.SalonAppointment;
 import com.salonhq.server.model.response.stats.AppointmentStatusStats;
 import com.salonhq.server.model.response.stats.CategoryShare;
 import com.salonhq.server.model.response.stats.JobStaffAnalytics;

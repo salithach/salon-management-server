@@ -44,6 +44,7 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
         );
     }
 
+
     @Override
     public SalonAppointment getAppointmentById(String id) {
         return mongoTemplate.findById(id, SalonAppointment.class);

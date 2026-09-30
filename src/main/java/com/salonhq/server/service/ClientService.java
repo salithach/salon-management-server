@@ -8,6 +8,7 @@ import java.util.List;
 public interface ClientService {
     SalonClient saveClient(Client client);
     List<SalonClient> getClients();
+    List<SalonClient> getClientsCreatedBetween(String startDate, String endDate);
     SalonClient getClientById(String id);
     SalonClient deleteClientById(String id);
 }
