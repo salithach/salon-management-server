@@ -14,9 +14,11 @@ public class OverviewStats {
     private double monthlyRevenueChangePercent;
     private int totalAppointments;
     private double appointmentsChangePercent;
+    private int monthlyJobs;
+    private double monthlyJobsChangePercent;
     private int newClients;
     private int newClientsChange;
-    private double avgTicket;
-    private double avgTicketChangePercent;
+    private double avgJobRevenue;
+    private double avgJobRevenueChangePercent;
 }
 

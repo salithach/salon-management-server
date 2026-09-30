@@ -13,6 +13,7 @@ public class MonthlyBreakdownRow {
     private String month;
     private double revenue;
     private int appointments;
-    private double avgTicket;
+    private double avgJobRevenue;
+    private int jobs;
 }
 

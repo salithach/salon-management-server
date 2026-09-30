@@ -156,13 +156,20 @@ public class StatsServiceImpl implements StatsService {
         List<SalonAppointment> monthAppointments = appointmentService.getAppointmentsBetween(start, end);
         double revenue = sumJobRevenue(monthJobs);
         int appointmentsCount = monthAppointments.size();
-        double avgTicket = appointmentsCount == 0 ? 0 : round1(revenue / appointmentsCount);
+        double avgJobRevenue = appointmentsCount == 0 ? 0 : round1(revenue / appointmentsCount);
+        int totalJobs = 0;
+        for (Job job : monthJobs) {
+            if (job.getJobs() != null) {
+                totalJobs += job.getJobs().size();
+            }
+        }
         String label = month.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
         return MonthlyBreakdownRow.builder()
             .month(label)
             .revenue(round1(revenue))
             .appointments(appointmentsCount)
-            .avgTicket(avgTicket)
+            .avgJobRevenue(avgJobRevenue)
+            .jobs(totalJobs)
         .build();
     }
 
@@ -181,18 +188,20 @@ public class StatsServiceImpl implements StatsService {
             previousMonth.atDay(1).toString(), previousMonth.atEndOfMonth().toString()
         ).size();
 
-        double avgTicket = currentMonthRow.getAvgTicket();
-        double previousAvgTicket = previousMonthRow.getAvgTicket();
+        double avgJobRevenue = currentMonthRow.getAvgJobRevenue();
+        double previousAvgJobRevenue = previousMonthRow.getAvgJobRevenue();
 
         return OverviewStats.builder()
             .monthlyRevenue(currentMonthRow.getRevenue())
             .monthlyRevenueChangePercent(percentChange(currentMonthRow.getRevenue(), previousMonthRow.getRevenue()))
             .totalAppointments(currentMonthRow.getAppointments())
             .appointmentsChangePercent(percentChange(currentMonthRow.getAppointments(), previousMonthRow.getAppointments()))
+            .monthlyJobs(currentMonthRow.getJobs())
+            .monthlyJobsChangePercent(percentChange(currentMonthRow.getJobs(), previousMonthRow.getJobs()))
             .newClients(newClientsCurrentMonth)
             .newClientsChange(newClientsCurrentMonth - newClientsPreviousMonth)
-            .avgTicket(avgTicket)
-            .avgTicketChangePercent(percentChange(avgTicket, previousAvgTicket))
+            .avgJobRevenue(avgJobRevenue)
+            .avgJobRevenueChangePercent(percentChange(avgJobRevenue, previousAvgJobRevenue))
         .build();
     }
 
@@ -323,18 +332,25 @@ public class StatsServiceImpl implements StatsService {
 
     // ---------- Job & staff analytics (single day + trailing window) ----------
 
-    private JobStaffAnalytics buildJobStaffAnalytics(
-        LocalDate targetDate,
-        List<SalonAppointment> dayAppointments,
-        DailyAssignment dailyAssignment,
-        int trailingDays
-    ) {
-        List<SalonAppointment> nonCancelled = dayAppointments.stream()
-            .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
-            .collect(Collectors.toList());
+     private JobStaffAnalytics buildJobStaffAnalytics(
+         LocalDate targetDate,
+         List<SalonAppointment> dayAppointments,
+         DailyAssignment dailyAssignment,
+         int trailingDays
+     ) {
+         List<SalonAppointment> nonCancelled = dayAppointments.stream()
+             .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
+             .collect(Collectors.toList());
 
-        int totalJobs = nonCancelled.size();
-        int confirmedJobs = countByStatus(dayAppointments, CONFIRMED);
+         // Count actual jobs (JobDetails entries) for the target date, not appointments
+         List<Job> targetDateJobs = jobService.getJobsBetween(targetDate.toString(), targetDate.toString());
+         int totalJobs = 0;
+         for (Job job : targetDateJobs) {
+             if (job.getJobs() != null) {
+                 totalJobs += job.getJobs().size();
+             }
+         }
+         int confirmedJobs = countByStatus(dayAppointments, CONFIRMED);
 
         Set<String> staffWithJobsSet = nonCancelled.stream()
             .map(SalonAppointment::getAssignee)
@@ -356,6 +372,16 @@ public class StatsServiceImpl implements StatsService {
         List<StaffWorkRow> staffWorkDistribution = buildStaffWorkDistribution(nonCancelled, totalJobs, rosterNames);
 
         LocalDate trailingStart = targetDate.minusDays(trailingDays - 1L);
+
+        // Daily Job Activity reflects jobs actually done/logged (Job records), not scheduled
+        // appointments. Each JobDetails entry within a Job represents one completed job.
+        List<Job> trailingJobs = jobService.getJobsBetween(trailingStart.toString(), targetDate.toString());
+        Map<String, Integer> jobsDoneByDate = new LinkedHashMap<>();
+        for (Job job : trailingJobs) {
+            int count = job.getJobs() == null ? 0 : job.getJobs().size();
+            jobsDoneByDate.merge(job.getDate(), count, Integer::sum);
+        }
+
         List<SalonAppointment> trailingAppointments = appointmentService.getAppointmentsBetween(trailingStart.toString(), targetDate.toString());
         Map<String, List<SalonAppointment>> byDate = trailingAppointments.stream()
             .collect(Collectors.groupingBy(SalonAppointment::getDate));
@@ -370,7 +396,10 @@ public class StatsServiceImpl implements StatsService {
             int dayConfirmed = countByStatus(dayList, CONFIRMED);
             int dayPending = countByStatus(dayList, PENDING);
             int dayCancelled = countByStatus(dayList, CANCELLED);
-            dailyJobActivity.add(JobActivityPoint.builder().date(d.toString()).jobCount(dayNonCancelled.size()).build());
+            dailyJobActivity.add(JobActivityPoint.builder()
+                .date(d.toString())
+                .jobCount(jobsDoneByDate.getOrDefault(d.toString(), 0))
+            .build());
             dailyJobBreakdown.add(DailyBreakdownRow.builder()
                 .date(d.toString())
                 .jobs(dayNonCancelled.size())
