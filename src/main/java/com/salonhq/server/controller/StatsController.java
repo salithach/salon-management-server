@@ -25,8 +25,12 @@ public class StatsController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getStats(@RequestParam(value = "date", required = false) String date) {
-        StatsResponse stats = statsService.getStats(date);
+    public ResponseEntity<?> getStats(
+        @RequestParam(value = "date", required = false) String date,
+        @RequestParam(value = "months", required = false) Integer months,
+        @RequestParam(value = "days", required = false) Integer days
+    ) {
+        StatsResponse stats = statsService.getStats(date, months, days);
         EnvelopedResponse<Object> response = EnvelopedResponse.builder()
             .data(stats)
             .errors(List.of())

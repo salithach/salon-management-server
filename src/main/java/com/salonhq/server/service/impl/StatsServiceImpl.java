@@ -54,8 +54,10 @@ public class StatsServiceImpl implements StatsService {
     private static final String OTHERS = "Others";
     private static final String OTHER_CATEGORY = "Other";
     private static final int SERVICE_REVENUE_TOP_N = 4;
-    private static final int TRAILING_DAYS = 7;
-    private static final int TRAILING_MONTHS = 7;
+    private static final int DEFAULT_TRAILING_DAYS = 7;
+    private static final int DEFAULT_TRAILING_MONTHS = 7;
+    private static final int MAX_TRAILING_DAYS = 90;
+    private static final int MAX_TRAILING_MONTHS = 24;
 
     private final AppointmentService appointmentService;
     private final JobService jobService;
@@ -79,11 +81,13 @@ public class StatsServiceImpl implements StatsService {
     }
 
     @Override
-    public StatsResponse getStats(String date) {
+    public StatsResponse getStats(String date, Integer trailingMonths, Integer trailingDays) {
         if (date == null || date.isBlank()) {
             date = LocalDate.now().toString();
         }
         LocalDate targetDate = LocalDate.parse(date);
+        int resolvedTrailingMonths = resolveWindowSize(trailingMonths, DEFAULT_TRAILING_MONTHS, MAX_TRAILING_MONTHS);
+        int resolvedTrailingDays = resolveWindowSize(trailingDays, DEFAULT_TRAILING_DAYS, MAX_TRAILING_DAYS);
 
         List<SalonAppointment> appointments = appointmentService.getAppointments(date);
         DailyAssignment dailyAssignment = assignmentService.getDailyAssignment(date);
@@ -91,7 +95,7 @@ public class StatsServiceImpl implements StatsService {
         YearMonth currentMonth = YearMonth.from(targetDate);
         YearMonth previousMonth = currentMonth.minusMonths(1);
 
-        List<MonthlyBreakdownRow> monthlyBreakdown = buildMonthlyBreakdown(currentMonth);
+        List<MonthlyBreakdownRow> monthlyBreakdown = buildMonthlyBreakdown(currentMonth, resolvedTrailingMonths);
         List<RevenuePoint> monthlyRevenueTrend = monthlyBreakdown.stream()
             .map(row -> RevenuePoint.builder().label(row.getMonth()).revenue(row.getRevenue()).build())
             .collect(Collectors.toList());
@@ -109,7 +113,7 @@ public class StatsServiceImpl implements StatsService {
 
         WeeklyRevenueResult weeklyRevenueResult = buildWeeklyRevenue(targetDate);
         AppointmentStatusStats appointmentStatus = buildAppointmentStatus(appointments);
-        JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(targetDate, appointments, dailyAssignment);
+        JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(targetDate, appointments, dailyAssignment, resolvedTrailingDays);
 
         return StatsResponse.builder()
             .overview(overview)
@@ -124,11 +128,22 @@ public class StatsServiceImpl implements StatsService {
         .build();
     }
 
+    /**
+     * Resolves a caller-supplied window size (e.g. ?months=12 or ?days=30), falling back to the
+     * default when null/non-positive, and clamping to a sane upper bound to prevent abuse.
+     */
+    private int resolveWindowSize(Integer requested, int defaultValue, int maxValue) {
+        if (requested == null || requested <= 0) {
+            return defaultValue;
+        }
+        return Math.min(requested, maxValue);
+    }
+
     // ---------- Monthly revenue / breakdown ----------
 
-    private List<MonthlyBreakdownRow> buildMonthlyBreakdown(YearMonth currentMonth) {
+    private List<MonthlyBreakdownRow> buildMonthlyBreakdown(YearMonth currentMonth, int trailingMonths) {
         List<MonthlyBreakdownRow> rows = new ArrayList<>();
-        for (int i = TRAILING_MONTHS - 1; i >= 0; i--) {
+        for (int i = trailingMonths - 1; i >= 0; i--) {
             rows.add(buildMonthRow(currentMonth.minusMonths(i)));
         }
         return rows;
@@ -308,7 +323,12 @@ public class StatsServiceImpl implements StatsService {
 
     // ---------- Job & staff analytics (single day + trailing window) ----------
 
-    private JobStaffAnalytics buildJobStaffAnalytics(LocalDate targetDate, List<SalonAppointment> dayAppointments, DailyAssignment dailyAssignment) {
+    private JobStaffAnalytics buildJobStaffAnalytics(
+        LocalDate targetDate,
+        List<SalonAppointment> dayAppointments,
+        DailyAssignment dailyAssignment,
+        int trailingDays
+    ) {
         List<SalonAppointment> nonCancelled = dayAppointments.stream()
             .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
             .collect(Collectors.toList());
@@ -335,7 +355,7 @@ public class StatsServiceImpl implements StatsService {
 
         List<StaffWorkRow> staffWorkDistribution = buildStaffWorkDistribution(nonCancelled, totalJobs, rosterNames);
 
-        LocalDate trailingStart = targetDate.minusDays(TRAILING_DAYS - 1L);
+        LocalDate trailingStart = targetDate.minusDays(trailingDays - 1L);
         List<SalonAppointment> trailingAppointments = appointmentService.getAppointmentsBetween(trailingStart.toString(), targetDate.toString());
         Map<String, List<SalonAppointment>> byDate = trailingAppointments.stream()
             .collect(Collectors.groupingBy(SalonAppointment::getDate));
