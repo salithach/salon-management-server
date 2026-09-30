@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface AppointmentService {
     List<SalonAppointment> getAppointments(String appointmentDate);
+    List<SalonAppointment> getAppointmentsBetween(String startDate, String endDate);
     SalonAppointment createAppointment(AppointmentRequest appointmentRequest);
     SalonAppointment editAppointment(String id, AppointmentRequest appointmentRequest);
     DeleteResponse deleteAppointment(String id);

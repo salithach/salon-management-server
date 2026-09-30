@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface AppointmentRepository {
     List<SalonAppointment> getAllAppointments(String appointmentDate);
+    List<SalonAppointment> getAppointmentsBetween(String startDate, String endDate);
     SalonAppointment getAppointmentById(String id);
     SalonAppointment addAppointment(AppointmentRequest appointment);
     SalonAppointment updateAppointmentById(String id, AppointmentRequest appointment);

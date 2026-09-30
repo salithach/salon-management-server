@@ -37,6 +37,12 @@ public class JobRepositoryImpl implements JobRepository {
     }
 
     @Override
+    public List<Job> getJobsBetween(String startDate, String endDate) {
+        Query query = Query.query(Criteria.where(DATE.getValue()).gte(startDate).lte(endDate));
+        return mongoTemplate.find(query, Job.class);
+    }
+
+    @Override
     public Optional<Job> getJobByUsernameAndDate(String username, String date) {
         Query query = Query.query(Criteria.where(ASSIGNEE.getValue()).is(username)
             .and(DATE.getValue()).is(date));

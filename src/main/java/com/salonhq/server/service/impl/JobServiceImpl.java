@@ -56,6 +56,11 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
+    public List<Job> getJobsBetween(String startDate, String endDate) {
+        return jobRepository.getJobsBetween(startDate, endDate);
+    }
+
+    @Override
     public DeleteResponse removeJobsByDate(String date) {
         DeleteResult deleteJobsByDateResult = jobRepository.deleteJobsByDate(date);
         if (deleteJobsByDateResult.getDeletedCount() > 0) {

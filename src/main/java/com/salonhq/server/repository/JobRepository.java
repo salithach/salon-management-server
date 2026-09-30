@@ -9,6 +9,7 @@ import java.util.Optional;
 public interface JobRepository {
     Job addJob(Job jobInfo);
     List<Job> getJobs(String date);
+    List<Job> getJobsBetween(String startDate, String endDate);
     Optional<Job> getJobByUsernameAndDate(String username, String date);
     DeleteResult deleteJobsByDate(String date);
 }

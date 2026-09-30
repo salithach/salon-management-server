@@ -2,34 +2,72 @@ package com.salonhq.server.service.impl;
 
 import com.salonhq.server.dao.DailyAssignment;
 import com.salonhq.server.dao.Job;
+import com.salonhq.server.dao.JobType;
 import com.salonhq.server.dao.SalonAppointment;
+import com.salonhq.server.dao.StaffMember;
+import com.salonhq.server.model.JobDetails;
 import com.salonhq.server.model.response.StatsResponse;
+import com.salonhq.server.model.response.stats.AppointmentStatusStats;
+import com.salonhq.server.model.response.stats.CategoryShare;
+import com.salonhq.server.model.response.stats.DailyBreakdownRow;
+import com.salonhq.server.model.response.stats.JobActivityPoint;
+import com.salonhq.server.model.response.stats.JobStaffAnalytics;
+import com.salonhq.server.model.response.stats.MonthlyBreakdownRow;
+import com.salonhq.server.model.response.stats.OverviewStats;
+import com.salonhq.server.model.response.stats.RevenuePoint;
+import com.salonhq.server.model.response.stats.ServiceRevenue;
+import com.salonhq.server.model.response.stats.StaffWorkRow;
 import com.salonhq.server.service.AppointmentService;
 import com.salonhq.server.service.AssignmentService;
 import com.salonhq.server.service.JobService;
+import com.salonhq.server.service.MetaDataService;
 import com.salonhq.server.service.StatsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.TextStyle;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class StatsServiceImpl implements StatsService {
 
+    private static final String CONFIRMED = "CONFIRMED";
+    private static final String PENDING = "PENDING";
+    private static final String CANCELLED = "CANCELLED";
+    private static final String OTHERS = "Others";
+    private static final String OTHER_CATEGORY = "Other";
+    private static final int SERVICE_REVENUE_TOP_N = 4;
+    private static final int TRAILING_DAYS = 7;
+    private static final int TRAILING_MONTHS = 7;
+    private static final String EARLIEST_DATE_BOUND = "0000-01-01";
+    private static final String LATEST_DATE_BOUND = "9999-12-31";
+
     private final AppointmentService appointmentService;
     private final JobService jobService;
     private final AssignmentService assignmentService;
+    private final MetaDataService metaDataService;
 
     @Autowired
     public StatsServiceImpl(
         AppointmentService appointmentService,
         JobService jobService,
-        AssignmentService assignmentService
+        AssignmentService assignmentService,
+        MetaDataService metaDataService
     ) {
         this.appointmentService = appointmentService;
         this.jobService = jobService;
         this.assignmentService = assignmentService;
+        this.metaDataService = metaDataService;
     }
 
     @Override
@@ -37,13 +75,371 @@ public class StatsServiceImpl implements StatsService {
         if (date == null || date.isBlank()) {
             date = LocalDate.now().toString();
         }
+        LocalDate targetDate = LocalDate.parse(date);
+
         List<SalonAppointment> appointments = appointmentService.getAppointments(date);
-        List<Job> jobs = jobService.getJobs(date);
         DailyAssignment dailyAssignment = assignmentService.getDailyAssignment(date);
+
+        YearMonth currentMonth = YearMonth.from(targetDate);
+        YearMonth previousMonth = currentMonth.minusMonths(1);
+
+        List<MonthlyBreakdownRow> monthlyBreakdown = buildMonthlyBreakdown(currentMonth);
+        List<RevenuePoint> monthlyRevenueTrend = monthlyBreakdown.stream()
+            .map(row -> RevenuePoint.builder().label(row.getMonth()).revenue(row.getRevenue()).build())
+            .collect(Collectors.toList());
+
+        MonthlyBreakdownRow currentMonthRow = monthlyBreakdown.get(monthlyBreakdown.size() - 1);
+        MonthlyBreakdownRow previousMonthRow = buildMonthRow(previousMonth);
+
+        List<Job> currentMonthJobs = jobService.getJobsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString());
+        List<SalonAppointment> allAppointments = appointmentService.getAppointmentsBetween(EARLIEST_DATE_BOUND, LATEST_DATE_BOUND);
+
+        OverviewStats overview = buildOverview(currentMonthRow, previousMonthRow, currentMonth, previousMonth, allAppointments);
+        List<ServiceRevenue> revenueByService = buildRevenueByService(currentMonthJobs);
+        List<CategoryShare> servicesMix = buildServicesMix(
+            appointmentService.getAppointmentsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString())
+        );
+
+        WeeklyRevenueResult weeklyRevenueResult = buildWeeklyRevenue(targetDate);
+        AppointmentStatusStats appointmentStatus = buildAppointmentStatus(appointments);
+        JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(targetDate, appointments, dailyAssignment);
+
         return StatsResponse.builder()
-            .appointments(appointments)
-            .jobs(jobs)
-            .dailyAssignment(dailyAssignment)
+            .overview(overview)
+            .monthlyRevenueTrend(monthlyRevenueTrend)
+            .revenueByService(revenueByService)
+            .weeklyRevenue(weeklyRevenueResult.points)
+            .weeklyRevenueChangePercent(weeklyRevenueResult.changePercent)
+            .servicesMix(servicesMix)
+            .appointmentStatus(appointmentStatus)
+            .monthlyBreakdown(monthlyBreakdown)
+            .jobStaffAnalytics(jobStaffAnalytics)
         .build();
+    }
+
+    // ---------- Monthly revenue / breakdown ----------
+
+    private List<MonthlyBreakdownRow> buildMonthlyBreakdown(YearMonth currentMonth) {
+        List<MonthlyBreakdownRow> rows = new ArrayList<>();
+        for (int i = TRAILING_MONTHS - 1; i >= 0; i--) {
+            rows.add(buildMonthRow(currentMonth.minusMonths(i)));
+        }
+        return rows;
+    }
+
+    private MonthlyBreakdownRow buildMonthRow(YearMonth month) {
+        String start = month.atDay(1).toString();
+        String end = month.atEndOfMonth().toString();
+        List<Job> monthJobs = jobService.getJobsBetween(start, end);
+        List<SalonAppointment> monthAppointments = appointmentService.getAppointmentsBetween(start, end);
+        double revenue = sumJobRevenue(monthJobs);
+        int appointmentsCount = monthAppointments.size();
+        double avgTicket = appointmentsCount == 0 ? 0 : round1(revenue / appointmentsCount);
+        String label = month.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+        return MonthlyBreakdownRow.builder()
+            .month(label)
+            .revenue(round1(revenue))
+            .appointments(appointmentsCount)
+            .avgTicket(avgTicket)
+        .build();
+    }
+
+    // ---------- Overview ----------
+
+    private OverviewStats buildOverview(
+        MonthlyBreakdownRow currentMonthRow,
+        MonthlyBreakdownRow previousMonthRow,
+        YearMonth currentMonth,
+        YearMonth previousMonth,
+        List<SalonAppointment> allAppointments
+    ) {
+        Map<String, LocalDate> firstAppointmentDateByClient = new LinkedHashMap<>();
+        for (SalonAppointment appointment : allAppointments) {
+            if (appointment.getClient() == null || appointment.getClient().getId() == null || appointment.getDate() == null) {
+                continue;
+            }
+            String clientId = appointment.getClient().getId();
+            LocalDate appointmentDate = LocalDate.parse(appointment.getDate());
+            firstAppointmentDateByClient.merge(clientId, appointmentDate, (existing, candidate) -> candidate.isBefore(existing) ? candidate : existing);
+        }
+
+        int newClientsCurrentMonth = countClientsFirstSeenInMonth(firstAppointmentDateByClient, currentMonth);
+        int newClientsPreviousMonth = countClientsFirstSeenInMonth(firstAppointmentDateByClient, previousMonth);
+
+        double avgTicket = currentMonthRow.getAvgTicket();
+        double previousAvgTicket = previousMonthRow.getAvgTicket();
+
+        return OverviewStats.builder()
+            .monthlyRevenue(currentMonthRow.getRevenue())
+            .monthlyRevenueChangePercent(percentChange(currentMonthRow.getRevenue(), previousMonthRow.getRevenue()))
+            .totalAppointments(currentMonthRow.getAppointments())
+            .appointmentsChangePercent(percentChange(currentMonthRow.getAppointments(), previousMonthRow.getAppointments()))
+            .newClients(newClientsCurrentMonth)
+            .newClientsChange(newClientsCurrentMonth - newClientsPreviousMonth)
+            .avgTicket(avgTicket)
+            .avgTicketChangePercent(percentChange(avgTicket, previousAvgTicket))
+        .build();
+    }
+
+    private int countClientsFirstSeenInMonth(Map<String, LocalDate> firstAppointmentDateByClient, YearMonth month) {
+        LocalDate start = month.atDay(1);
+        LocalDate end = month.atEndOfMonth();
+        return (int) firstAppointmentDateByClient.values().stream()
+            .filter(d -> !d.isBefore(start) && !d.isAfter(end))
+            .count();
+    }
+
+    // ---------- Revenue by service ----------
+
+    private List<ServiceRevenue> buildRevenueByService(List<Job> monthJobs) {
+        Map<String, Double> revenueByService = new LinkedHashMap<>();
+        for (Job job : monthJobs) {
+            if (job.getJobs() == null) continue;
+            for (JobDetails jobDetails : job.getJobs()) {
+                List<String> services = jobDetails.getServices();
+                Double price = jobDetails.getPrice();
+                if (services == null || services.isEmpty() || price == null) continue;
+                double splitPrice = price / services.size();
+                for (String service : services) {
+                    revenueByService.merge(service, splitPrice, Double::sum);
+                }
+            }
+        }
+
+        List<Map.Entry<String, Double>> sorted = revenueByService.entrySet().stream()
+            .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+            .toList();
+
+        List<ServiceRevenue> result = new ArrayList<>();
+        double othersTotal = 0;
+        for (int i = 0; i < sorted.size(); i++) {
+            Map.Entry<String, Double> entry = sorted.get(i);
+            if (i < SERVICE_REVENUE_TOP_N) {
+                result.add(ServiceRevenue.builder().service(entry.getKey()).revenue(round1(entry.getValue())).build());
+            } else {
+                othersTotal += entry.getValue();
+            }
+        }
+        if (othersTotal > 0) {
+            result.add(ServiceRevenue.builder().service(OTHERS).revenue(round1(othersTotal)).build());
+        }
+        return result;
+    }
+
+    // ---------- Services mix (appointments by category) ----------
+
+    private List<CategoryShare> buildServicesMix(List<SalonAppointment> monthAppointments) {
+        Map<String, String> serviceToCategory = buildServiceCategoryMap();
+        Map<String, Long> countByCategory = new LinkedHashMap<>();
+        long total = 0;
+        for (SalonAppointment appointment : monthAppointments) {
+            if (appointment.getServices() == null) continue;
+            for (String service : appointment.getServices()) {
+                String category = serviceToCategory.getOrDefault(service, OTHER_CATEGORY);
+                countByCategory.merge(category, 1L, Long::sum);
+                total++;
+            }
+        }
+
+        long finalTotal = total;
+        return countByCategory.entrySet().stream()
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+            .map(entry -> CategoryShare.builder()
+                .category(entry.getKey())
+                .count(entry.getValue())
+                .percent(finalTotal == 0 ? 0 : round1(entry.getValue() * 100.0 / finalTotal))
+            .build())
+            .collect(Collectors.toList());
+    }
+
+    private Map<String, String> buildServiceCategoryMap() {
+        List<JobType> jobTypes = metaDataService.getJobTypesList();
+        Map<String, String> map = new LinkedHashMap<>();
+        if (jobTypes != null) {
+            for (JobType jobType : jobTypes) {
+                if (jobType.getValue() != null) {
+                    map.put(jobType.getValue(), jobType.getCategory());
+                }
+                if (jobType.getKey() != null) {
+                    map.putIfAbsent(jobType.getKey(), jobType.getCategory());
+                }
+            }
+        }
+        return map;
+    }
+
+    // ---------- Weekly revenue ----------
+
+    private static class WeeklyRevenueResult {
+        List<RevenuePoint> points;
+        double changePercent;
+    }
+
+    private WeeklyRevenueResult buildWeeklyRevenue(LocalDate targetDate) {
+        LocalDate weekStart = targetDate.minusDays(targetDate.getDayOfWeek().getValue() - 1L);
+        LocalDate weekEnd = weekStart.plusDays(6);
+        LocalDate prevWeekStart = weekStart.minusWeeks(1);
+        LocalDate prevWeekEnd = weekEnd.minusWeeks(1);
+
+        List<Job> currentWeekJobs = jobService.getJobsBetween(weekStart.toString(), weekEnd.toString());
+        List<Job> prevWeekJobs = jobService.getJobsBetween(prevWeekStart.toString(), prevWeekEnd.toString());
+
+        Map<String, Double> revenueByDate = new LinkedHashMap<>();
+        for (Job job : currentWeekJobs) {
+            revenueByDate.merge(job.getDate(), sumJobRevenue(List.of(job)), Double::sum);
+        }
+
+        List<RevenuePoint> points = new ArrayList<>();
+        for (LocalDate d = weekStart; !d.isAfter(weekEnd); d = d.plusDays(1)) {
+            String label = d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+            double revenue = revenueByDate.getOrDefault(d.toString(), 0.0);
+            points.add(RevenuePoint.builder().label(label).revenue(round1(revenue)).build());
+        }
+
+        double currentWeekTotal = sumJobRevenue(currentWeekJobs);
+        double prevWeekTotal = sumJobRevenue(prevWeekJobs);
+
+        WeeklyRevenueResult result = new WeeklyRevenueResult();
+        result.points = points;
+        result.changePercent = percentChange(currentWeekTotal, prevWeekTotal);
+        return result;
+    }
+
+    // ---------- Appointment status (single day) ----------
+
+    private AppointmentStatusStats buildAppointmentStatus(List<SalonAppointment> dayAppointments) {
+        int confirmed = countByStatus(dayAppointments, CONFIRMED);
+        int pending = countByStatus(dayAppointments, PENDING);
+        return AppointmentStatusStats.builder().confirmed(confirmed).pending(pending).build();
+    }
+
+    // ---------- Job & staff analytics (single day + trailing window) ----------
+
+    private JobStaffAnalytics buildJobStaffAnalytics(LocalDate targetDate, List<SalonAppointment> dayAppointments, DailyAssignment dailyAssignment) {
+        List<SalonAppointment> nonCancelled = dayAppointments.stream()
+            .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
+            .collect(Collectors.toList());
+
+        int totalJobs = nonCancelled.size();
+        int confirmedJobs = countByStatus(dayAppointments, CONFIRMED);
+
+        Set<String> staffWithJobsSet = nonCancelled.stream()
+            .map(SalonAppointment::getAssignee)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        int staffWithJobs = staffWithJobsSet.size();
+
+        // "Active Staff" reflects who was actually scheduled/on duty that day (the daily
+        // assignment roster), not merely who happened to receive a job. Fall back to staff
+        // derived from appointments only when no roster has been recorded for the day.
+        List<String> rosterNames = dailyAssignment != null && dailyAssignment.getMembers() != null
+            ? dailyAssignment.getMembers().stream().map(StaffMember::getName).filter(Objects::nonNull).toList()
+            : List.of();
+        int activeStaff = !rosterNames.isEmpty()
+            ? (int) rosterNames.stream().distinct().count()
+            : staffWithJobs;
+        double avgJobsPerStaff = activeStaff == 0 ? 0 : round1((double) totalJobs / activeStaff);
+
+        List<StaffWorkRow> staffWorkDistribution = buildStaffWorkDistribution(nonCancelled, totalJobs, rosterNames);
+
+        LocalDate trailingStart = targetDate.minusDays(TRAILING_DAYS - 1L);
+        List<SalonAppointment> trailingAppointments = appointmentService.getAppointmentsBetween(trailingStart.toString(), targetDate.toString());
+        Map<String, List<SalonAppointment>> byDate = trailingAppointments.stream()
+            .collect(Collectors.groupingBy(SalonAppointment::getDate));
+
+        List<JobActivityPoint> dailyJobActivity = new ArrayList<>();
+        List<DailyBreakdownRow> dailyJobBreakdown = new ArrayList<>();
+        for (LocalDate d = trailingStart; !d.isAfter(targetDate); d = d.plusDays(1)) {
+            List<SalonAppointment> dayList = byDate.getOrDefault(d.toString(), List.of());
+            List<SalonAppointment> dayNonCancelled = dayList.stream()
+                .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
+                .toList();
+            int dayConfirmed = countByStatus(dayList, CONFIRMED);
+            int dayPending = countByStatus(dayList, PENDING);
+            int dayCancelled = countByStatus(dayList, CANCELLED);
+            dailyJobActivity.add(JobActivityPoint.builder().date(d.toString()).jobCount(dayNonCancelled.size()).build());
+            dailyJobBreakdown.add(DailyBreakdownRow.builder()
+                .date(d.toString())
+                .jobs(dayNonCancelled.size())
+                .confirmed(dayConfirmed)
+                .pending(dayPending)
+                .cancelled(dayCancelled)
+            .build());
+        }
+
+        return JobStaffAnalytics.builder()
+            .totalJobs(totalJobs)
+            .confirmedJobs(confirmedJobs)
+            .activeStaff(activeStaff)
+            .staffWithJobs(staffWithJobs)
+            .avgJobsPerStaff(avgJobsPerStaff)
+            .dailyJobActivity(dailyJobActivity)
+            .staffWorkDistribution(staffWorkDistribution)
+            .dailyJobBreakdown(dailyJobBreakdown)
+        .build();
+    }
+
+    private List<StaffWorkRow> buildStaffWorkDistribution(List<SalonAppointment> nonCancelled, int totalJobs, List<String> rosterNames) {
+        Map<String, List<SalonAppointment>> byAssignee = nonCancelled.stream()
+            .filter(a -> a.getAssignee() != null)
+            .collect(Collectors.groupingBy(SalonAppointment::getAssignee, LinkedHashMap::new, Collectors.toList()));
+
+        // Seed the distribution with every staff member assigned to work that day (via the daily
+        // roster), so staff who were scheduled but received zero jobs still show up with 0 workload.
+        Map<String, List<SalonAppointment>> byStaffName = new LinkedHashMap<>();
+        for (String rosterName : rosterNames) {
+            byStaffName.put(rosterName, new ArrayList<>());
+        }
+        byAssignee.forEach((assignee, staffAppointments) ->
+            byStaffName.merge(assignee, staffAppointments, (existing, incoming) -> incoming)
+        );
+
+        return byStaffName.entrySet().stream()
+            .map(entry -> {
+                List<SalonAppointment> staffAppointments = entry.getValue();
+                int jobs = staffAppointments.size();
+                int confirmed = countByStatus(staffAppointments, CONFIRMED);
+                int pending = countByStatus(staffAppointments, PENDING);
+                double workloadPercent = totalJobs == 0 ? 0 : round1(jobs * 100.0 / totalJobs);
+                return StaffWorkRow.builder()
+                    .staff(entry.getKey())
+                    .jobs(jobs)
+                    .confirmed(confirmed)
+                    .pending(pending)
+                    .workloadPercent(workloadPercent)
+                .build();
+            })
+            .sorted(Comparator.comparingInt(StaffWorkRow::getJobs).reversed())
+            .collect(Collectors.toList());
+    }
+
+    // ---------- Shared helpers ----------
+
+    private int countByStatus(List<SalonAppointment> appointments, String status) {
+        return (int) appointments.stream().filter(a -> status.equalsIgnoreCase(a.getStatus())).count();
+    }
+
+    private double sumJobRevenue(List<Job> jobs) {
+        double total = 0;
+        for (Job job : jobs) {
+            if (job.getJobs() == null) continue;
+            for (JobDetails jobDetails : job.getJobs()) {
+                if (jobDetails.getPrice() != null) {
+                    total += jobDetails.getPrice();
+                }
+            }
+        }
+        return total;
+    }
+
+    private double percentChange(double current, double previous) {
+        if (previous == 0) {
+            return current == 0 ? 0 : 100.0;
+        }
+        return round1(((current - previous) / previous) * 100.0);
+    }
+
+    private double round1(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 }

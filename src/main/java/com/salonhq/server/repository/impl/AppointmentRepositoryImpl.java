@@ -35,6 +35,16 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
     }
 
     @Override
+    public List<SalonAppointment> getAppointmentsBetween(String startDate, String endDate) {
+        return mongoTemplate.find(
+            Query.query(
+                Criteria.where("date").gte(startDate).lte(endDate)
+            ),
+            SalonAppointment.class
+        );
+    }
+
+    @Override
     public SalonAppointment getAppointmentById(String id) {
         return mongoTemplate.findById(id, SalonAppointment.class);
     }

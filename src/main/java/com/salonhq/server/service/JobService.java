@@ -9,5 +9,6 @@ import java.util.List;
 public interface JobService {
     Job createJob(JobRequest jobRequest);
     List<Job> getJobs(String date);
+    List<Job> getJobsBetween(String startDate, String endDate);
     DeleteResponse removeJobsByDate(String date);
 }
