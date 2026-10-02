@@ -14,7 +14,7 @@ import com.salonhq.server.model.response.stats.JobActivityPoint;
 import com.salonhq.server.model.response.stats.JobStaffAnalytics;
 import com.salonhq.server.model.response.stats.MonthlyBreakdownRow;
 import com.salonhq.server.model.response.stats.OverviewStats;
-import com.salonhq.server.model.response.stats.RevenuePoint;
+import com.salonhq.server.model.response.stats.DailyRevenuePoint;
 import com.salonhq.server.model.response.stats.ServiceRevenue;
 import com.salonhq.server.model.response.stats.StaffWorkRow;
 import com.salonhq.server.service.AppointmentService;
@@ -30,9 +30,11 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.TextStyle;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -54,10 +56,7 @@ public class StatsServiceImpl implements StatsService {
     private static final String OTHERS = "Others";
     private static final String OTHER_CATEGORY = "Other";
     private static final int SERVICE_REVENUE_TOP_N = 4;
-    private static final int DEFAULT_TRAILING_DAYS = 7;
-    private static final int DEFAULT_TRAILING_MONTHS = 7;
-    private static final int MAX_TRAILING_DAYS = 90;
-    private static final int MAX_TRAILING_MONTHS = 24;
+    private static final int MAX_RANGE_DAYS = 366;
 
     private final AppointmentService appointmentService;
     private final JobService jobService;
@@ -81,89 +80,51 @@ public class StatsServiceImpl implements StatsService {
     }
 
     @Override
-    public StatsResponse getStats(String date, Integer trailingMonths, Integer trailingDays) {
-        if (date == null || date.isBlank()) {
-            date = LocalDate.now().toString();
+    public StatsResponse getStats(String startDate, String endDate) {
+        LocalDate end = (endDate == null || endDate.isBlank()) ? LocalDate.now() : LocalDate.parse(endDate);
+        LocalDate start = (startDate == null || startDate.isBlank()) ? end.withDayOfMonth(1) : LocalDate.parse(startDate);
+        if (start.isAfter(end)) {
+            throw new IllegalArgumentException("startDate must not be after endDate");
         }
-        LocalDate targetDate = LocalDate.parse(date);
-        int resolvedTrailingMonths = resolveWindowSize(trailingMonths, DEFAULT_TRAILING_MONTHS, MAX_TRAILING_MONTHS);
-        int resolvedTrailingDays = resolveWindowSize(trailingDays, DEFAULT_TRAILING_DAYS, MAX_TRAILING_DAYS);
-
-        List<SalonAppointment> appointments = appointmentService.getAppointments(date);
-        DailyAssignment dailyAssignment = assignmentService.getDailyAssignment(date);
-
-        YearMonth currentMonth = YearMonth.from(targetDate);
-        YearMonth previousMonth = currentMonth.minusMonths(1);
-
-        List<MonthlyBreakdownRow> monthlyBreakdown = buildMonthlyBreakdown(currentMonth, resolvedTrailingMonths);
-        List<RevenuePoint> monthlyRevenueTrend = monthlyBreakdown.stream()
-            .map(row -> RevenuePoint.builder().label(row.getMonth()).revenue(row.getRevenue()).build())
-            .collect(Collectors.toList());
-
-        MonthlyBreakdownRow currentMonthRow = monthlyBreakdown.get(monthlyBreakdown.size() - 1);
-        MonthlyBreakdownRow previousMonthRow = buildMonthRow(previousMonth);
-
-        List<Job> currentMonthJobs = jobService.getJobsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString());
-
-        OverviewStats overview = buildOverview(currentMonthRow, previousMonthRow, currentMonth, previousMonth);
-        List<ServiceRevenue> revenueByService = buildRevenueByService(currentMonthJobs);
-        List<CategoryShare> servicesMix = buildServicesMix(
-            appointmentService.getAppointmentsBetween(currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString())
-        );
-
-        WeeklyRevenueResult weeklyRevenueResult = buildWeeklyRevenue(targetDate);
+        long days = ChronoUnit.DAYS.between(start, end) + 1;
+        if (days > MAX_RANGE_DAYS) {
+            throw new IllegalArgumentException("Date range must not exceed " + MAX_RANGE_DAYS + " days");
+        }
+        LocalDate prevEnd = start.minusDays(1);
+        LocalDate prevStart = start.minusDays(days);
+        List<SalonAppointment> appointments = appointmentService.getAppointmentsBetween(start.toString(), end.toString());
+        List<Job> rangeJobs = jobService.getJobsBetween(start.toString(), end.toString());
+        MonthlyBreakdownRow currentRow = buildPeriodRow("Range", start, end);
+        MonthlyBreakdownRow previousRow = buildPeriodRow("Previous", prevStart, prevEnd);
+        OverviewStats overview = buildOverview(currentRow, previousRow, start, end, prevStart, prevEnd);
+        List<ServiceRevenue> revenueByService = buildRevenueByService(rangeJobs);
+        List<CategoryShare> servicesMix = buildServicesMix(appointments);
+        DailyRevenueResult dailyRevenueResult = buildDailyRevenue(start, end, prevStart, prevEnd, rangeJobs);
         AppointmentStatusStats appointmentStatus = buildAppointmentStatus(appointments);
-        JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(targetDate, appointments, dailyAssignment, resolvedTrailingDays);
-
+        JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(start, end, appointments, rangeJobs);
         return StatsResponse.builder()
             .overview(overview)
-            .monthlyRevenueTrend(monthlyRevenueTrend)
             .revenueByService(revenueByService)
-            .weeklyRevenue(weeklyRevenueResult.points)
-            .weeklyRevenueChangePercent(weeklyRevenueResult.changePercent)
+            .dailyRevenue(dailyRevenueResult.points)
+            .dailyRevenueChangePercent(dailyRevenueResult.changePercent)
             .servicesMix(servicesMix)
             .appointmentStatus(appointmentStatus)
-            .monthlyBreakdown(monthlyBreakdown)
             .jobStaffAnalytics(jobStaffAnalytics)
         .build();
     }
-
-    /**
-     * Resolves a caller-supplied window size (e.g. ?months=12 or ?days=30), falling back to the
-     * default when null/non-positive, and clamping to a sane upper bound to prevent abuse.
-     */
-    private int resolveWindowSize(Integer requested, int defaultValue, int maxValue) {
-        if (requested == null || requested <= 0) {
-            return defaultValue;
-        }
-        return Math.min(requested, maxValue);
-    }
-
-    // ---------- Monthly revenue / breakdown ----------
-
-    private List<MonthlyBreakdownRow> buildMonthlyBreakdown(YearMonth currentMonth, int trailingMonths) {
-        List<MonthlyBreakdownRow> rows = new ArrayList<>();
-        for (int i = trailingMonths - 1; i >= 0; i--) {
-            rows.add(buildMonthRow(currentMonth.minusMonths(i)));
-        }
-        return rows;
-    }
-
-    private MonthlyBreakdownRow buildMonthRow(YearMonth month) {
-        String start = month.atDay(1).toString();
-        String end = month.atEndOfMonth().toString();
-        List<Job> monthJobs = jobService.getJobsBetween(start, end);
-        List<SalonAppointment> monthAppointments = appointmentService.getAppointmentsBetween(start, end);
-        double revenue = sumJobRevenue(monthJobs);
-        int appointmentsCount = monthAppointments.size();
+    // ---------- Period totals (used by overview) ----------
+    private MonthlyBreakdownRow buildPeriodRow(String label, LocalDate from, LocalDate to) {
+        List<Job> periodJobs = jobService.getJobsBetween(from.toString(), to.toString());
+        List<SalonAppointment> periodAppointments = appointmentService.getAppointmentsBetween(from.toString(), to.toString());
+        double revenue = sumJobRevenue(periodJobs);
+        int appointmentsCount = periodAppointments.size();
         double avgJobRevenue = appointmentsCount == 0 ? 0 : round1(revenue / appointmentsCount);
         int totalJobs = 0;
-        for (Job job : monthJobs) {
+        for (Job job : periodJobs) {
             if (job.getJobs() != null) {
                 totalJobs += job.getJobs().size();
             }
         }
-        String label = month.getMonth().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
         return MonthlyBreakdownRow.builder()
             .month(label)
             .revenue(round1(revenue))
@@ -172,40 +133,32 @@ public class StatsServiceImpl implements StatsService {
             .jobs(totalJobs)
         .build();
     }
-
     // ---------- Overview ----------
-
     private OverviewStats buildOverview(
-        MonthlyBreakdownRow currentMonthRow,
-        MonthlyBreakdownRow previousMonthRow,
-        YearMonth currentMonth,
-        YearMonth previousMonth
+        MonthlyBreakdownRow currentRow,
+        MonthlyBreakdownRow previousRow,
+        LocalDate start,
+        LocalDate end,
+        LocalDate prevStart,
+        LocalDate prevEnd
     ) {
-        int newClientsCurrentMonth = clientService.getClientsCreatedBetween(
-            currentMonth.atDay(1).toString(), currentMonth.atEndOfMonth().toString()
-        ).size();
-        int newClientsPreviousMonth = clientService.getClientsCreatedBetween(
-            previousMonth.atDay(1).toString(), previousMonth.atEndOfMonth().toString()
-        ).size();
-
-        double avgJobRevenue = currentMonthRow.getAvgJobRevenue();
-        double previousAvgJobRevenue = previousMonthRow.getAvgJobRevenue();
-
+        int newClientsCurrent = clientService.getClientsCreatedBetween(start.toString(), end.toString()).size();
+        int newClientsPrevious = clientService.getClientsCreatedBetween(prevStart.toString(), prevEnd.toString()).size();
+        double avgJobRevenue = currentRow.getAvgJobRevenue();
+        double previousAvgJobRevenue = previousRow.getAvgJobRevenue();
         return OverviewStats.builder()
-            .monthlyRevenue(currentMonthRow.getRevenue())
-            .monthlyRevenueChangePercent(percentChange(currentMonthRow.getRevenue(), previousMonthRow.getRevenue()))
-            .totalAppointments(currentMonthRow.getAppointments())
-            .appointmentsChangePercent(percentChange(currentMonthRow.getAppointments(), previousMonthRow.getAppointments()))
-            .monthlyJobs(currentMonthRow.getJobs())
-            .monthlyJobsChangePercent(percentChange(currentMonthRow.getJobs(), previousMonthRow.getJobs()))
-            .newClients(newClientsCurrentMonth)
-            .newClientsChange(newClientsCurrentMonth - newClientsPreviousMonth)
+            .monthlyRevenue(currentRow.getRevenue())
+            .monthlyRevenueChangePercent(percentChange(currentRow.getRevenue(), previousRow.getRevenue()))
+            .totalAppointments(currentRow.getAppointments())
+            .appointmentsChangePercent(percentChange(currentRow.getAppointments(), previousRow.getAppointments()))
+            .monthlyJobs(currentRow.getJobs())
+            .monthlyJobsChangePercent(percentChange(currentRow.getJobs(), previousRow.getJobs()))
+            .newClients(newClientsCurrent)
+            .newClientsChange(newClientsCurrent - newClientsPrevious)
             .avgJobRevenue(avgJobRevenue)
             .avgJobRevenueChangePercent(percentChange(avgJobRevenue, previousAvgJobRevenue))
         .build();
     }
-
-
     // ---------- Revenue by service ----------
 
     private List<ServiceRevenue> buildRevenueByService(List<Job> monthJobs) {
@@ -285,43 +238,31 @@ public class StatsServiceImpl implements StatsService {
         return map;
     }
 
-    // ---------- Weekly revenue ----------
+    // ---------- Daily revenue ----------
 
-    private static class WeeklyRevenueResult {
-        List<RevenuePoint> points;
+    private static class DailyRevenueResult {
+        List<DailyRevenuePoint> points;
         double changePercent;
     }
 
-    private WeeklyRevenueResult buildWeeklyRevenue(LocalDate targetDate) {
-        LocalDate weekStart = targetDate.minusDays(targetDate.getDayOfWeek().getValue() - 1L);
-        LocalDate weekEnd = weekStart.plusDays(6);
-        LocalDate prevWeekStart = weekStart.minusWeeks(1);
-        LocalDate prevWeekEnd = weekEnd.minusWeeks(1);
-
-        List<Job> currentWeekJobs = jobService.getJobsBetween(weekStart.toString(), weekEnd.toString());
-        List<Job> prevWeekJobs = jobService.getJobsBetween(prevWeekStart.toString(), prevWeekEnd.toString());
-
+    private DailyRevenueResult buildDailyRevenue(
+        LocalDate start, LocalDate end, LocalDate prevStart, LocalDate prevEnd, List<Job> rangeJobs
+    ) {
+        List<Job> prevJobs = jobService.getJobsBetween(prevStart.toString(), prevEnd.toString());
         Map<String, Double> revenueByDate = new LinkedHashMap<>();
-        for (Job job : currentWeekJobs) {
+        for (Job job : rangeJobs) {
             revenueByDate.merge(job.getDate(), sumJobRevenue(List.of(job)), Double::sum);
         }
-
-        List<RevenuePoint> points = new ArrayList<>();
-        for (LocalDate d = weekStart; !d.isAfter(weekEnd); d = d.plusDays(1)) {
-            String label = d.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH);
+        List<DailyRevenuePoint> points = new ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
             double revenue = revenueByDate.getOrDefault(d.toString(), 0.0);
-            points.add(RevenuePoint.builder().label(label).revenue(round1(revenue)).build());
+            points.add(DailyRevenuePoint.builder().date(d.toString()).revenue(round1(revenue)).build());
         }
-
-        double currentWeekTotal = sumJobRevenue(currentWeekJobs);
-        double prevWeekTotal = sumJobRevenue(prevWeekJobs);
-
-        WeeklyRevenueResult result = new WeeklyRevenueResult();
+        DailyRevenueResult result = new DailyRevenueResult();
         result.points = points;
-        result.changePercent = percentChange(currentWeekTotal, prevWeekTotal);
+        result.changePercent = percentChange(sumJobRevenue(rangeJobs), sumJobRevenue(prevJobs));
         return result;
     }
-
     // ---------- Appointment status (single day) ----------
 
     private AppointmentStatusStats buildAppointmentStatus(List<SalonAppointment> dayAppointments) {
@@ -332,63 +273,58 @@ public class StatsServiceImpl implements StatsService {
 
     // ---------- Job & staff analytics (single day + trailing window) ----------
 
-     private JobStaffAnalytics buildJobStaffAnalytics(
-         LocalDate targetDate,
-         List<SalonAppointment> dayAppointments,
-         DailyAssignment dailyAssignment,
-         int trailingDays
-     ) {
-         List<SalonAppointment> nonCancelled = dayAppointments.stream()
-             .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
-             .collect(Collectors.toList());
-
-         // Count actual jobs (JobDetails entries) for the target date, not appointments
-         List<Job> targetDateJobs = jobService.getJobsBetween(targetDate.toString(), targetDate.toString());
-         int totalJobs = 0;
-         for (Job job : targetDateJobs) {
-             if (job.getJobs() != null) {
-                 totalJobs += job.getJobs().size();
-             }
-         }
-         int confirmedJobs = countByStatus(dayAppointments, CONFIRMED);
-
+    private JobStaffAnalytics buildJobStaffAnalytics(
+        LocalDate start,
+        LocalDate end,
+        List<SalonAppointment> dayAppointments,
+        List<Job> rangeJobs
+    ) {
+        List<SalonAppointment> nonCancelled = dayAppointments.stream()
+            .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
+            .collect(Collectors.toList());
+        // Count actual jobs (JobDetails entries) within the range, not appointments
+        int totalJobs = 0;
+        for (Job job : rangeJobs) {
+            if (job.getJobs() != null) {
+                totalJobs += job.getJobs().size();
+            }
+        }
+        int confirmedJobs = countByStatus(dayAppointments, CONFIRMED);
         Set<String> staffWithJobsSet = nonCancelled.stream()
             .map(SalonAppointment::getAssignee)
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
         int staffWithJobs = staffWithJobsSet.size();
-
-        // "Active Staff" reflects who was actually scheduled/on duty that day (the daily
-        // assignment roster), not merely who happened to receive a job. Fall back to staff
-        // derived from appointments only when no roster has been recorded for the day.
-        List<String> rosterNames = dailyAssignment != null && dailyAssignment.getMembers() != null
-            ? dailyAssignment.getMembers().stream().map(StaffMember::getName).filter(Objects::nonNull).toList()
-            : List.of();
-        int activeStaff = !rosterNames.isEmpty()
-            ? (int) rosterNames.stream().distinct().count()
-            : staffWithJobs;
+        // Active staff = distinct staff on the daily roster across the range; fall back to
+        // staff derived from appointments when no roster was recorded.
+        Set<String> rosterSet = new LinkedHashSet<>();
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
+            DailyAssignment da = assignmentService.getDailyAssignment(d.toString());
+            if (da != null && da.getMembers() != null) {
+                da.getMembers().stream().map(StaffMember::getName).filter(Objects::nonNull).forEach(rosterSet::add);
+            }
+        }
+        List<String> rosterNames = new ArrayList<>(rosterSet);
+        int activeStaff = !rosterNames.isEmpty() ? rosterNames.size() : staffWithJobs;
         double avgJobsPerStaff = activeStaff == 0 ? 0 : round1((double) totalJobs / activeStaff);
-
         List<StaffWorkRow> staffWorkDistribution = buildStaffWorkDistribution(nonCancelled, totalJobs, rosterNames);
 
-        LocalDate trailingStart = targetDate.minusDays(trailingDays - 1L);
 
         // Daily Job Activity reflects jobs actually done/logged (Job records), not scheduled
         // appointments. Each JobDetails entry within a Job represents one completed job.
-        List<Job> trailingJobs = jobService.getJobsBetween(trailingStart.toString(), targetDate.toString());
+        List<Job> trailingJobs = rangeJobs;
         Map<String, Integer> jobsDoneByDate = new LinkedHashMap<>();
         for (Job job : trailingJobs) {
             int count = job.getJobs() == null ? 0 : job.getJobs().size();
             jobsDoneByDate.merge(job.getDate(), count, Integer::sum);
         }
 
-        List<SalonAppointment> trailingAppointments = appointmentService.getAppointmentsBetween(trailingStart.toString(), targetDate.toString());
-        Map<String, List<SalonAppointment>> byDate = trailingAppointments.stream()
+        Map<String, List<SalonAppointment>> byDate = dayAppointments.stream()
             .collect(Collectors.groupingBy(SalonAppointment::getDate));
 
         List<JobActivityPoint> dailyJobActivity = new ArrayList<>();
         List<DailyBreakdownRow> dailyJobBreakdown = new ArrayList<>();
-        for (LocalDate d = trailingStart; !d.isAfter(targetDate); d = d.plusDays(1)) {
+        for (LocalDate d = start; !d.isAfter(end); d = d.plusDays(1)) {
             List<SalonAppointment> dayList = byDate.getOrDefault(d.toString(), List.of());
             List<SalonAppointment> dayNonCancelled = dayList.stream()
                 .filter(a -> !CANCELLED.equalsIgnoreCase(a.getStatus()))
