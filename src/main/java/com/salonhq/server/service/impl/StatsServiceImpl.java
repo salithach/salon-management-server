@@ -28,22 +28,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.salonhq.server.util.StatsUtil.countByStatus;
-import static com.salonhq.server.util.StatsUtil.percentChange;
 import static com.salonhq.server.util.StatsUtil.round1;
 import static com.salonhq.server.util.StatsUtil.sumJobRevenue;
 
@@ -148,15 +144,11 @@ public class StatsServiceImpl implements StatsService {
         double previousAvgJobRevenue = previousRow.getAvgJobRevenue();
         return OverviewStats.builder()
             .monthlyRevenue(currentRow.getRevenue())
-            .monthlyRevenueChangePercent(percentChange(currentRow.getRevenue(), previousRow.getRevenue()))
             .totalAppointments(currentRow.getAppointments())
-            .appointmentsChangePercent(percentChange(currentRow.getAppointments(), previousRow.getAppointments()))
             .monthlyJobs(currentRow.getJobs())
-            .monthlyJobsChangePercent(percentChange(currentRow.getJobs(), previousRow.getJobs()))
             .newClients(newClientsCurrent)
             .newClientsChange(newClientsCurrent - newClientsPrevious)
             .avgJobRevenue(avgJobRevenue)
-            .avgJobRevenueChangePercent(percentChange(avgJobRevenue, previousAvgJobRevenue))
         .build();
     }
     // ---------- Revenue by service ----------
@@ -260,7 +252,6 @@ public class StatsServiceImpl implements StatsService {
         }
         DailyRevenueResult result = new DailyRevenueResult();
         result.points = points;
-        result.changePercent = percentChange(sumJobRevenue(rangeJobs), sumJobRevenue(prevJobs));
         return result;
     }
     // ---------- Appointment status (single day) ----------
