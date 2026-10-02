@@ -4,6 +4,7 @@ import com.mongodb.client.result.DeleteResult;
 import com.salonhq.server.dao.StaffMember;
 import com.salonhq.server.repository.StaffRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -13,9 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.salonhq.server.util.Constants.EMAIL;
-import static com.salonhq.server.util.Constants.ID;
-import static com.salonhq.server.util.Constants.USERNAME;
+import static com.salonhq.server.util.Constants.DbFields.*;
 
 @Repository
 public class StaffRepositoryImpl implements StaffRepository {
@@ -23,7 +22,7 @@ public class StaffRepositoryImpl implements StaffRepository {
     private final MongoTemplate mongoTemplate;
 
     @Autowired
-    public StaffRepositoryImpl(MongoTemplate mongoTemplate) {
+    public StaffRepositoryImpl(@Qualifier("tenantMongoTemplate") MongoTemplate mongoTemplate) {
         this.mongoTemplate = mongoTemplate;
     }
 
@@ -35,25 +34,25 @@ public class StaffRepositoryImpl implements StaffRepository {
 
     @Override
     public Optional<StaffMember> getByUsername(String username) {
-        Query query = Query.query(Criteria.where(USERNAME).is(username));
+        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public Optional<StaffMember> getByEmail(String email) {
-        Query query = Query.query(Criteria.where(EMAIL).is(email));
+        Query query = Query.query(Criteria.where(EMAIL.getValue()).is(email));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public Optional<StaffMember> getById(String id) {
-        Query query = Query.query(Criteria.where(ID).is(id));
+        Query query = Query.query(Criteria.where(ID.getValue()).is(id));
         return Optional.ofNullable(mongoTemplate.findOne(query, StaffMember.class));
     }
 
     @Override
     public DeleteResult removeStaff(String username) {
-        Query query = Query.query(Criteria.where(USERNAME).is(username));
+        Query query = Query.query(Criteria.where(USERNAME.getValue()).is(username));
         return mongoTemplate.remove(query, StaffMember.class);
     }
 

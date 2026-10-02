@@ -5,16 +5,13 @@ import com.salonhq.server.model.request.salon.SalonInformation;
 import com.salonhq.server.model.request.salon.SalonLocation;
 import com.salonhq.server.model.request.salon.SalonOwner;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-import java.util.Set;
 import java.util.UUID;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
-public class RegisterRequest {
-    String email;
-    String username;
-    String password;
-    Set<String> roles;
+public class SalonRegistrationRequest extends UserRegistrationRequest {
     SalonOwner owner;
     SalonInformation salon;
     SalonLocation location;

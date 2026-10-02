@@ -6,6 +6,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -38,6 +39,13 @@ public class CustomExceptionHandler {
 		return ResponseEntity.status(BAD_REQUEST).body(envelopedError);
 	}
 
+	@ExceptionHandler(ActivationException.class)
+	public ResponseEntity<?> handleActivationException(ActivationException ex) {
+		EnvelopedResponse<Object> envelopedError = new EnvelopedResponse<>();
+		envelopedError.setErrors(List.of(new ErrorResponse(CONFLICT.value(), ex.getMessage())));
+		return ResponseEntity.status(CONFLICT).body(envelopedError);
+	}
+
 	@ExceptionHandler({MethodArgumentNotValidException.class})
 	public ResponseEntity<?> handleValidationExceptions(MethodArgumentNotValidException ex) {
 		List<ErrorResponse> errorList = ex.getBindingResult().getFieldErrors().stream()
@@ -51,6 +59,13 @@ public class CustomExceptionHandler {
 
 	@ExceptionHandler(AuthorizationDeniedException.class)
 	public final ResponseEntity<?> handleAuthorizationException(AuthorizationDeniedException ex) {
+		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
+		envelopedResponse.setErrors(List.of(new ErrorResponse(FORBIDDEN.value(), ex.getMessage())));
+		return new ResponseEntity<>(envelopedResponse, FORBIDDEN);
+	}
+
+	@ExceptionHandler(AccessDeniedException.class)
+	public final ResponseEntity<?> handleAccessDeniedException(AccessDeniedException ex) {
 		EnvelopedResponse<Object> envelopedResponse = new EnvelopedResponse<>();
 		envelopedResponse.setErrors(List.of(new ErrorResponse(FORBIDDEN.value(), ex.getMessage())));
 		return new ResponseEntity<>(envelopedResponse, FORBIDDEN);
