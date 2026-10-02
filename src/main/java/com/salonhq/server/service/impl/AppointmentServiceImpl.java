@@ -13,7 +13,6 @@ import com.salonhq.server.service.ClientService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -30,9 +29,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<SalonAppointment> getAppointments(String appointmentDate) {
-        if (appointmentDate == null || appointmentDate.isEmpty()) {
-            appointmentDate = LocalDate.now().toString();
-        }
         return appointmentRepository.getAllAppointments(appointmentDate);
     }
 

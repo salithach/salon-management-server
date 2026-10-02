@@ -26,6 +26,9 @@ public class AppointmentRepositoryImpl implements AppointmentRepository {
 
     @Override
     public List<SalonAppointment> getAllAppointments(String appointmentDate) {
+        if (appointmentDate == null || appointmentDate.isEmpty()) {
+            return mongoTemplate.findAll(SalonAppointment.class);
+        }
         return mongoTemplate.find(
             Query.query(
                 Criteria.where("date").is(appointmentDate)
