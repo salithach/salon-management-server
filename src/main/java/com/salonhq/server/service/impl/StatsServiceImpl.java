@@ -90,12 +90,11 @@ public class StatsServiceImpl implements StatsService {
         LocalDate prevStart = start.minusDays(days);
         List<SalonAppointment> appointments = appointmentService.getAppointmentsBetween(start.toString(), end.toString());
         List<Job> rangeJobs = jobService.getJobsBetween(start.toString(), end.toString());
-        MonthlyBreakdownRow currentRow = buildPeriodRow("Range", start, end);
-        MonthlyBreakdownRow previousRow = buildPeriodRow("Previous", prevStart, prevEnd);
-        OverviewStats overview = buildOverview(currentRow, previousRow, start, end, prevStart, prevEnd);
+        MonthlyBreakdownRow currentRow = buildPeriodRow(start, end);
+        OverviewStats overview = buildOverview(currentRow, start, end, prevStart, prevEnd);
         List<ServiceRevenue> revenueByService = buildRevenueByService(rangeJobs);
         List<CategoryShare> servicesMix = buildServicesMix(appointments);
-        DailyRevenueResult dailyRevenueResult = buildDailyRevenue(start, end, prevStart, prevEnd, rangeJobs);
+        DailyRevenueResult dailyRevenueResult = buildDailyRevenue(start, end, rangeJobs);
         AppointmentStatusStats appointmentStatus = buildAppointmentStatus(appointments);
         JobStaffAnalytics jobStaffAnalytics = buildJobStaffAnalytics(start, end, appointments, rangeJobs);
         return StatsResponse.builder()
@@ -109,7 +108,7 @@ public class StatsServiceImpl implements StatsService {
         .build();
     }
     // ---------- Period totals (used by overview) ----------
-    private MonthlyBreakdownRow buildPeriodRow(String label, LocalDate from, LocalDate to) {
+    private MonthlyBreakdownRow buildPeriodRow(LocalDate from, LocalDate to) {
         List<Job> periodJobs = jobService.getJobsBetween(from.toString(), to.toString());
         List<SalonAppointment> periodAppointments = appointmentService.getAppointmentsBetween(from.toString(), to.toString());
         double revenue = sumJobRevenue(periodJobs);
@@ -122,7 +121,7 @@ public class StatsServiceImpl implements StatsService {
             }
         }
         return MonthlyBreakdownRow.builder()
-            .month(label)
+            .month("Range")
             .revenue(round1(revenue))
             .appointments(appointmentsCount)
             .avgJobRevenue(avgJobRevenue)
@@ -132,7 +131,6 @@ public class StatsServiceImpl implements StatsService {
     // ---------- Overview ----------
     private OverviewStats buildOverview(
         MonthlyBreakdownRow currentRow,
-        MonthlyBreakdownRow previousRow,
         LocalDate start,
         LocalDate end,
         LocalDate prevStart,
@@ -141,7 +139,6 @@ public class StatsServiceImpl implements StatsService {
         int newClientsCurrent = clientService.getClientsCreatedBetween(start.toString(), end.toString()).size();
         int newClientsPrevious = clientService.getClientsCreatedBetween(prevStart.toString(), prevEnd.toString()).size();
         double avgJobRevenue = currentRow.getAvgJobRevenue();
-        double previousAvgJobRevenue = previousRow.getAvgJobRevenue();
         return OverviewStats.builder()
             .monthlyRevenue(currentRow.getRevenue())
             .totalAppointments(currentRow.getAppointments())
@@ -238,9 +235,8 @@ public class StatsServiceImpl implements StatsService {
     }
 
     private DailyRevenueResult buildDailyRevenue(
-        LocalDate start, LocalDate end, LocalDate prevStart, LocalDate prevEnd, List<Job> rangeJobs
+        LocalDate start, LocalDate end, List<Job> rangeJobs
     ) {
-        List<Job> prevJobs = jobService.getJobsBetween(prevStart.toString(), prevEnd.toString());
         Map<String, Double> revenueByDate = new LinkedHashMap<>();
         for (Job job : rangeJobs) {
             revenueByDate.merge(job.getDate(), sumJobRevenue(List.of(job)), Double::sum);
@@ -303,9 +299,8 @@ public class StatsServiceImpl implements StatsService {
 
         // Daily Job Activity reflects jobs actually done/logged (Job records), not scheduled
         // appointments. Each JobDetails entry within a Job represents one completed job.
-        List<Job> trailingJobs = rangeJobs;
         Map<String, Integer> jobsDoneByDate = new LinkedHashMap<>();
-        for (Job job : trailingJobs) {
+        for (Job job : rangeJobs) {
             int count = job.getJobs() == null ? 0 : job.getJobs().size();
             jobsDoneByDate.merge(job.getDate(), count, Integer::sum);
         }
